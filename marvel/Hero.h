@@ -1,5 +1,7 @@
 #ifndef Hero_h
 #define Hero_h
+#include "Equipment.h"
+#include <map>
 #include <iostream>
 #include <string>
 using namespace std;
@@ -90,6 +92,12 @@ public:
 	void print_stat();
 
 private:
+	//enum
+	enum item_slots{BELT, GLOVES, ARMOUR, Count};
+	//Equipment
+	Equipment* slots[Count];
+	multimap<string, Equipment*> bag;
+
 	//strings
 	string hero;
 	string power;

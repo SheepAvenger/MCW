@@ -24,12 +24,18 @@
     <ClCompile Include="enemies.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="Equipment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Hero.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="enemi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Equipment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

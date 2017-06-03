@@ -65,11 +65,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="enemies.cpp" />
+    <ClCompile Include="Equipment.cpp" />
     <ClCompile Include="Hero.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="enemi.h" />
+    <ClInclude Include="Equipment.h" />
     <ClInclude Include="Hero.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
