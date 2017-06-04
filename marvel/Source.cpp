@@ -8,7 +8,8 @@
 #include <windows.h>
 #include<fstream>
 #include "Hero.h"
-#include "enemi.h"
+#include "enemies.h"
+#include "Enum.h"
 
 using namespace std;
 
@@ -56,14 +57,6 @@ const int player_xy = 2;
 //options
 vector<string>options; //used to make sure no event is trigged when a player selects the options menue.
 
-//enums
-enum _name {
-	IRON_MAN, SPIDERMAN, WOLVERINE, CAPTAIN_AMERICA, BLACK_WIDOW, BLACK_PANTHER, MS_MARVEL, MR_FANTASTIC,
-	GREEN_GOBLIN, VENOM, ZEMO, RED_SKULL, SABRETOOTH, NITRO, WHIPLASH, TITANIUM_MAN, TRI_SENTINEL,
-	MAGNETO, STEGRON, SAURON, KINGPIN, IRON_FIST, MISTER_SINISTER, CALLISTO, DARK_BEAST, CALIBAN,
-	BLOCKBUSTER, LADY_MASTERMIND, ARCLIGHT, MACHINE_MAN, BASTION, QUICKSILVER, TOAD, SCARLET_WITCH,
-	DAREDEVIL, LUKE_CAGE, MARROW, HULK, DOCTOR_OCTOPUS, POWDERKEG, SHOCKER, TITANIA
-};
 
 void mission_stat(int c) /*check to see if you start a mission*/
 {

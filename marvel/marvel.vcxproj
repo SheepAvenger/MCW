@@ -70,7 +70,8 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="enemi.h" />
+    <ClInclude Include="enemies.h" />
+    <ClInclude Include="Enum.h" />
     <ClInclude Include="Equipment.h" />
     <ClInclude Include="Hero.h" />
   </ItemGroup>

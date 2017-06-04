@@ -15,7 +15,6 @@ using namespace std;
 class Equipment
 {
 private:
-	enum STATS{STRENGTH, SPEED, DURABILITY, ENERGY, INTELLIGENCE, COMBAT_SKILL};
 	struct Item {
 		string type;
 		string rarity;
@@ -29,16 +28,17 @@ private:
 	void set_rarity();
 	void set_name();
 	void set_value();
-	void set_stats();
-	void set_attributes();
+	void set_stats(int);
+	void set_attributes(int, string);
 public:
-	Equipment();
+	Equipment(int, string);
+	Equipment(string, string, string, int, int[6], int[9]);
 	string get_type();
 	string get_rarity();
 	string get_name();
 	int get_value();
 	void print_stats();
-	void print_attributes();
+	void print_attributes(string);
 };
 
 

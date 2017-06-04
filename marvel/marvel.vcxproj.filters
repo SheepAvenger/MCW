@@ -25,7 +25,7 @@
       <Filter>Resource Files</Filter>
     </ClCompile>
     <ClCompile Include="Equipment.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Resource Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

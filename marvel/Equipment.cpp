@@ -1,22 +1,38 @@
 #include "Equipment.h"
+#include "Enum.h"
 
 
 
-Equipment::Equipment()
+Equipment::Equipment(int lvl, string p_name)
 {
 	item = new Item;
 	set_name();
 	set_type();
 	set_rarity();
 	set_value();
-	set_stats();
-	set_attributes();
+	set_stats(lvl);
+	set_attributes(lvl, p_name);
+}
+//For special Boss equipment
+Equipment::Equipment(string name, string type, string rarity, int value, int stats[6], int attributes[9])
+{
+	item = new Item;
+	item->name = name;
+	item->type = type;
+	item->rarity = rarity;
+	item->value = value;
+	for (int i = 0; i < 9; i++)
+	{
+		if(i < 6) item->stats[i] = stats[i];
+		item->attributes[i] = attributes[i];
+	}
 }
 
 
 void Equipment::set_name()
 {
-	item->name = "";//TODO
+	//TODO
+	item->name = "item";//place holder
 }
 string Equipment::get_name()
 {
@@ -50,6 +66,7 @@ string Equipment::get_rarity()
 void Equipment::set_value()
 {
 	//TODO
+	item->value = 0; //place holder
 }
 int Equipment::get_value()
 {
@@ -58,9 +75,11 @@ int Equipment::get_value()
 }
 
 
-void Equipment::set_stats()
+void Equipment::set_stats(int lvl)
 {
 	//TODO
+	for (int i = 0; i < 6; i++)
+		item->stats[i] = rand() % lvl;
 }
 void Equipment::print_stats()
 {
@@ -74,11 +93,22 @@ void Equipment::print_stats()
 }
 
 
-void Equipment::set_attributes()
+void Equipment::set_attributes(int lvl, string p_name)
 {
 	//TODO
+	for (int i = 0; i < 9; i++)
+		item->stats[i] = rand() % lvl;
 }
-void Equipment::print_attributes()
+void Equipment::print_attributes(string p_name)
 {
-	//TODO
+	cout << "Bleed Damage: " << item->attributes[BLEED_DMG] << endl;
+	cout << "Defence: " << item->attributes[DEFENCE] << endl;
+	cout << "Damage: " << item->attributes[DAMAGE] << endl;
+	cout << "Evade: " << item->attributes[EVADE] << endl;
+	cout << "Experience: " << item->attributes[EXP] << endl;
+	cout << "Health: " << item->attributes[HEALTH] << endl;
+	if(p_name == "Wolverine") cout << "Regeneration: " << item->attributes[REGEN] << endl;
+	if(p_name == "Iron Man" || p_name == "Mr. Fantastic") cout << "Damage Reduction: " << item->attributes[REDUCE] << endl;
+	if(p_name == "Spiderman") cout << "Web Strength: " << item->attributes[WEB_STR] << endl;
+
 }

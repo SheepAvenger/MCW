@@ -4,9 +4,12 @@
 #include <Windows.h>
 #include "enemi.h"
 #include "Hero.h"
+#include "Enum.h"
 using namespace std;
+
 int rnd_prv[15] = { -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1 }; // durability
 int rnd_prv2[15] = { -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1 }; // defense
+
 enemies::enemies()
 {
 	name = "";
