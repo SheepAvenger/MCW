@@ -6,9 +6,9 @@
 Equipment::Equipment(int lvl, string p_name)
 {
 	item = new Item;
-	set_name();
 	set_type();
 	set_rarity();
+	set_name();
 	set_value();
 	set_stats(lvl);
 	set_attributes(lvl, p_name);
@@ -32,7 +32,7 @@ Equipment::Equipment(string name, string type, string rarity, int value, int sta
 void Equipment::set_name()
 {
 	//TODO
-	item->name = "item";//place holder
+	item->name = item->rarity + " item";//place holder
 }
 string Equipment::get_name()
 {
@@ -55,7 +55,7 @@ void Equipment::set_rarity()
 {
 	//common, uncommon[40-70], rare[70-90], legendary[90-99]
 	int rarity = rand() % 100; //0-99
-	item->rarity = (rarity > 89 ? "Lengenday" : (rarity > 69 ? "Rare" : (rarity > 39 ? "Uncommon" : "Common")));
+	item->rarity = (rarity > 89 ? "Lengendary" : (rarity > 69 ? "Rare" : (rarity > 39 ? "Uncommon" : "Common")));
 }
 string Equipment::get_rarity()
 {
@@ -111,4 +111,15 @@ void Equipment::print_attributes(string p_name)
 	if(p_name == "Iron Man" || p_name == "Mr. Fantastic") cout << "Damage Reduction: " << item->attributes[REDUCE] << endl;
 	if(p_name == "Spiderman") cout << "Web Strength: " << item->attributes[WEB_STR] << endl;
 
+}
+void Equipment::print(string p_name)
+{
+	cout << "Name: " << item->name << endl;
+	cout << "Type: " << item->type << endl;
+	cout << "Rarity: " << item->rarity << endl;
+	cout << "Value: " << item->value << endl;
+	cout << "Stats" << "\n------------------------------------------------\n";
+	print_stats();
+	cout << "Attributes" << "\n------------------------------------------------\n";
+	print_attributes(p_name);
 }

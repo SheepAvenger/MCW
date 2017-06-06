@@ -1144,6 +1144,7 @@ void dead_enemy()
 				std::cout << "You now have " << team[0]->get_current_experience() << " exp." << endl;
 				team[0]->set_reputation(group[i]->get_reputation());
 				std::cout << "Your Current Reputation is: " << team[0]->get_reputation() << endl;
+				team[0]->add_to_bag(group[i]->get_item());
 				if (group[i]->get_boss())
 				{
 					switch (group[i]->get_enum())
@@ -1343,6 +1344,7 @@ void explosion_result(bool a, bool b)
 						std::cout << "You now have " << team[0]->get_current_experience() << " exp." << endl;
 						team[0]->set_reputation(group[i]->get_reputation());
 						std::cout << "Your Current Reputation is: " << team[0]->get_reputation() << endl;
+						team[0]->add_to_bag(group[i]->get_item());
 						if (group[i]->get_boss())
 						{
 
@@ -5450,6 +5452,7 @@ enemies* create_enemy(player* p, Map* m, int i, int rand_enemy)
 	enemy->set_energy(0, team[0]);
 	enemy->set_defense(enemy->get_Cskill() + enemy->get_level() + enemy->get_speed() + rand_int);
 	enemy->set_weapon();
+	enemy->set_item(team[0]->get_hero());
 
 	return enemy;
 }
@@ -6609,6 +6612,7 @@ void events1(player* p, Map* m)
 				  e->set_villian();
 				  e->set_reputation();
 				  e->set_defense(e->get_Cskill() + e->get_level() + e->get_speed() + rand_int);
+				  e->set_item(team[0]->get_hero());
 				  group.push_back(e);
 				  for (size_t i = 0; i < group.size(); i++)
 				  {
@@ -7584,6 +7588,7 @@ void events1(player* p, Map* m)
 
 			  Villian->set_defense(Villian->get_Cskill() + Villian->get_level() + Villian->get_speed() + rand_int);
 			  Villian->set_reputation();
+			  Villian->set_item(team[0]->get_hero());
 			 
 			  group.push_back(Villian);
 			  fight(p, Villian);

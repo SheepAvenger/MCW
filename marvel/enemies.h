@@ -2,6 +2,7 @@
 #define enemies_h
 #include <iostream>
 #include <string>
+#include "Equipment.h"
 using namespace std;
 
 
@@ -113,8 +114,15 @@ public:
 	void set_nitro(int i);
 	int get_nitro();
 
+	//Generate Equipment
+	void set_item(string);
+	Equipment** get_item();
+
 
 private:
+	//Items
+	Equipment* items[6];
+	
 	//strings
 	string e_power;
 	string name;

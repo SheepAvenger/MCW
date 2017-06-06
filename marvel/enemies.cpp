@@ -2,7 +2,7 @@
 #include <string>
 #include <time.h>
 #include <Windows.h>
-#include "enemi.h"
+#include "enemies.h"
 #include "Hero.h"
 #include "Enum.h"
 using namespace std;
@@ -41,6 +41,7 @@ enemies::enemies()
 	web_str = 0;
 	int_name = -1;
 	e_power = "";
+	for (int i = 0; i < 6; i++) items[i] = NULL;
 	ko = false;
 	is_boss = false;
 	is_villian = false;
@@ -1759,6 +1760,20 @@ int enemies::get_level()
 {
 	return e_lvl;
 }
+
+void enemies::set_item(string p_name)
+{
+	int number = rand() % 6;
+	for (int i = 0; i < number; i++)
+	{
+		items[i] = new Equipment(e_lvl, p_name);
+	}
+}
+Equipment** enemies::get_item()
+{
+	return items;
+}
+
 void enemies::set_attack(player* h, enemies* e) //do this: add attacks for mission mission bosses
 /*Marrow, Tri-Sentinel, Magneto, Stegron, Sauron, Kingpin, Iron Fist, Mister Sinister, Callisto, Dark Beast, Caliban,
 Blockbuster, Lady Mastermind, Arclight, Machine Man, Bastion, Quicksilver, Toad, Scarlet Witch, Daredevil, Luke Cage,

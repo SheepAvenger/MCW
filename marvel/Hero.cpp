@@ -3,7 +3,7 @@
 #include <conio.h>
 #include <time.h>
 #include "Hero.h"
-#include "enemi.h"
+#include "enemies.h"
 using namespace std;
 
 player::player()
@@ -33,6 +33,8 @@ player::player()
 	reg = "";
 	hero = "";
 	power = "";
+	for (int i = 0; i < Count; i++) slots[i] = NULL;
+	bag = new multimap<string, Equipment*>();
 }
 void player::set_registration(string h)
 {
@@ -545,6 +547,24 @@ int player::get_defense()
 void player::reset_defense()
 {
 	defe = 0;
+}
+
+void player::add_to_bag(Equipment** items)
+{
+	int i = 0;
+	if(items[0] != NULL) cout << hero << " has found items!\n";
+	while (items[i] != NULL)
+	{
+		items[i]->print(hero);
+		bag->insert(std::pair<string, Equipment*>(items[i]->get_name(), items[i]));
+		i++;
+
+	}
+	//
+}
+void player::set_slots()
+{
+	//TODO
 }
 
 void player::set_attack(enemies* h, player* p)

@@ -39,6 +39,7 @@ public:
 	int get_value();
 	void print_stats();
 	void print_attributes(string);
+	void print(string);
 };
 
 

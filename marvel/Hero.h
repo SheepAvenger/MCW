@@ -91,12 +91,17 @@ public:
 	//output stats
 	void print_stat();
 
+	//Equipment
+	void add_to_bag(Equipment**);
+	void set_slots();
+
+
 private:
 	//enum
 	enum item_slots{BELT, GLOVES, ARMOUR, Count};
 	//Equipment
 	Equipment* slots[Count];
-	multimap<string, Equipment*> bag;
+	multimap<string, Equipment*>* bag;
 
 	//strings
 	string hero;
