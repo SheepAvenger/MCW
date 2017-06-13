@@ -2,8 +2,11 @@
 #include <string>
 #include <conio.h>
 #include <time.h>
+#include <windows.h>
+#include <algorithm>
 #include "Hero.h"
 #include "enemies.h"
+#include "Enum.h"
 using namespace std;
 
 player::player()
@@ -34,7 +37,8 @@ player::player()
 	hero = "";
 	power = "";
 	for (int i = 0; i < Count; i++) slots[i] = NULL;
-	bag = new multimap<string, Equipment*>();
+	//bag = new multimap<string, Equipment*>();
+	//bag = new vector<Equipment*>();
 }
 void player::set_registration(string h)
 {
@@ -387,18 +391,23 @@ void player::set_hero(string h)
 		}
 	}
 }
-
 string player::get_hero()
 {
 	return hero;
 }
+
 void player::set_strenght(int s)
 {
-		str += s;
-		if (str < 0)
-		{
-			str = 0;
-		}
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			str += slots[i]->get_stats(STRENGTH);
+	}
+	str += s;
+	if (str < 0)
+	{
+		str = 0;
+	}
 }
 int player::get_strength()
 {
@@ -406,6 +415,11 @@ int player::get_strength()
 }
 void player::set_energy(int i)
 {
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			energy += slots[i]->get_stats(ENERGY);
+	}
 	energy += i;
 	if (energy < 0)
 	{
@@ -418,6 +432,11 @@ int player::get_energy()
 }
 void player::set_intelligence(int i)
 {
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			intell	+= slots[i]->get_stats(INTELLIGENCE);
+	}
 	intell += i;
 	if (intell < 0)
 	{
@@ -430,6 +449,11 @@ int player::get_intelligence()
 }
 void player::set_speed(int i)
 {
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			spd	+= slots[i]->get_stats(SPEED);
+	}
 	spd += i;
 	if (spd < 0)
 	{
@@ -442,6 +466,11 @@ int player::get_speed()
 }
 void player::set_durability(int s)
 {
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			dur	+= slots[i]->get_stats(DURABILITY);
+	}
 	dur += s;
 	if (dur < 0)
 	{
@@ -454,6 +483,11 @@ int player::get_durability()
 }
 void player::set_Cskill(int s)
 {
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			skill	+= slots[i]->get_stats(COMBAT_SKILL);
+	}
 	skill += s;
 	if (skill < 0)
 	{
@@ -464,6 +498,7 @@ int player::get_Cskill()
 {
 	return skill;
 }
+
 void player::set_health(int i)
 {
 	hlth += i;
@@ -477,10 +512,14 @@ int player::get_health()
 {
 	return hlth;
 }
-
 void player::max_hlth()
 {
 	max = dur * (15 + lvl) + 100;
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			max	+= slots[i]->get_attribute(HEALTH);
+	}
 }
 int player::get_max()
 {
@@ -489,16 +528,21 @@ int player::get_max()
 void player::set_regen()
 {
 	regen = (hlth * 0.02);
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			regen += slots[i]->get_attribute(REGEN);
+	}
 }
 int player::get_regen()
 {
 	return regen;
 }
+
 void player::set_experience(int s)
 {
 	exp = ((lvl * (25 + lvl) + exp)) + s;
 }
-
 int player::get_experience()
 {
 	return exp;
@@ -507,12 +551,18 @@ void player::set_current_experience(enemies* h, int s)
 {
 	
 		Cexp += s + h->get_experience();
+		for (int i = 0; i < Count; i++)
+		{
+			if (slots[i] != NULL)
+				Cexp += slots[i]->get_attribute(EXP);
+		}
 
 }
 int player::get_current_experience()
 {
 	return Cexp;
 }
+
 void player::set_level(int s)
 {
 
@@ -532,9 +582,15 @@ int player::get_level()
 {
 	return lvl;
 }
+
 void player::set_defense(int i)
 {
 	defe < 0 ? defe = 0 : defe += i;//use to be defe <= 0
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			defe += slots[i]->get_attribute(DEFENCE);
+	}
 	
 }
 int player::get_defense()
@@ -556,15 +612,139 @@ void player::add_to_bag(Equipment** items)
 	while (items[i] != NULL)
 	{
 		items[i]->print(hero);
-		bag->insert(std::pair<string, Equipment*>(items[i]->get_name(), items[i]));
+		bag.push_back(items[i]);
+		//bag->insert(std::pair<string, Equipment*>(items[i]->get_name(), items[i]));
 		i++;
 
 	}
+	sort(bag.begin(), bag.begin());
 	//
 }
 void player::set_slots()
 {
-	//TODO
+	int count = 1;
+	bool picking = true;
+	char input = NULL;
+	char choice = NULL;
+	if (!bag.empty()) {
+		/*for (multimap<string, Equipment*>::iterator it = bag->begin(); it != bag->end(); ++it) {
+			cout << count << ": " << it->first << endl;;
+			count++;
+		}*/
+		do
+		{
+			cout << "Current Equiped Items\n";
+			cout << "Glove: " << (slots[GLOVES] == NULL ? "Empty" : slots[GLOVES]->get_name()) << endl;
+			cout << "Belt: " << (slots[BELT] == NULL ? "Empty" : slots[BELT]->get_name()) << endl;
+			cout << "Armour: " << (slots[ARMOUR] == NULL ? "Empty" : slots[ARMOUR]->get_name()) << endl << endl;
+			cout << "-----------------Bag-----------------\n";
+			for (int i = 0; i < bag.size(); i++)
+			{
+				cout << count << ": " << bag[i]->get_name() << endl;
+				count++;
+			}
+			do
+			{
+				input = _getch();
+
+			} while (input >= (bag.size() + 48) && input <= '0');
+			system("cls");
+			bag[input - '1']->print(hero);
+			cout << "Equip " << bag[input - '1']->get_name() << "?\n";
+			cout << "1. Yes\n2. No\n";
+			while (true)
+			{
+				choice = _getch();
+				if (choice == '1')
+				{
+					picking = false;
+					break;
+				}
+				else if (choice == '2')
+				{
+					input = NULL;
+					choice == NULL;
+					count = 1;
+					system("cls");
+					break;
+				}
+				else
+					cout << "Please select a valid choice\n";
+			}
+
+		} while (picking);
+
+
+		if (bag[input - '1']->get_type() == "Gloves")
+		{
+			if (slots[GLOVES] != NULL) bag.push_back(slots[GLOVES]);
+			slots[GLOVES] = bag[input - '1'];
+		}
+		else if (bag[input - '1']->get_type() == "Belt")
+		{
+			if (slots[BELT] != NULL) bag.push_back(slots[BELT]);
+			slots[BELT] = bag[input - '1'];
+		}
+		else if (bag[input - '1']->get_type() == "Armour")
+		{
+			if (slots[ARMOUR] != NULL) bag.push_back(slots[ARMOUR]);
+			slots[ARMOUR] = bag[input - '1'];
+		}
+		cout << hero << " equiped " << bag[input - '1']->get_name() << endl;
+		Equipment* temp = bag[bag.size() - 1];
+		bag[bag.size() - 1] = bag[input - '1'];
+		bag[input - '1'] = temp;
+		bag.pop_back();
+		sort(bag.begin(), bag.end());
+		check_item_set();
+		update_stats();
+		print_stat();
+	}
+	else
+		cout << "Bag is empty\n";
+}
+void player::print_bag()
+{
+	cout << "---------------------Bag---------------------\n";
+	if (!bag.empty())
+	{
+		for (int i = 0; i < bag.size(); i++)
+		{
+			bag[i]->print(hero);
+		}
+	}
+	else
+	{
+		cout << "Empty\n";
+	}
+}
+void player::check_item_set()
+{
+	for (int i = 0; i < Count-1; i++)
+	{
+		if (slots[i] == NULL || slots[i]->get_setName() != slots[i + 1]->get_setName())
+			return;
+	}
+	//TODO here
+}
+void player::update_stats()
+{
+	set_strenght(0);
+	set_speed(0);
+	set_durability(0);
+	set_intelligence(0);
+	set_Cskill(0);
+	set_energy(0);
+
+	set_evade();
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			set_health(slots[i]->get_attribute(HEALTH));
+	}
+	set_regen();
+	set_reduce();
+	set_web_strength(0);
 }
 
 void player::set_attack(enemies* h, player* p)
@@ -2828,6 +3008,11 @@ void player::set_attack(enemies* h, player* p)
 }
 int player::get_attack()
 {
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			dmg += slots[i]->get_attribute(DAMAGE);
+	}
 	return dmg;
 }
 void player::set_conditon(enemies* h)
@@ -2888,6 +3073,11 @@ string player::get_power()
 void player::set_bleed_dmg(int i)
 {
 	bleed_dmg += i;
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			bleed_dmg += slots[i]->get_attribute(BLEED_DMG);
+	}
 }
 int player::get_bleed_dmg()
 {
@@ -2930,8 +3120,11 @@ void player::print_stat()
 	{
 		cout << "Damage Reduction: " << reduce << endl;
 	}
-	cout << "Reputation: " << rep << " / 100" << endl;
-
+	cout << "Reputation: " << rep << " / 100" << endl << endl;
+	cout << "--------------------------------------------------\n";
+	cout << "Glove: " << (slots[GLOVES] == NULL ? "Empty" : slots[GLOVES]->get_name()) << endl;
+	cout << "Belt: " << (slots[BELT] == NULL ? "Empty" : slots[BELT]->get_name()) << endl;
+	cout << "Armour: " << (slots[ARMOUR] == NULL ? "Empty" : slots[ARMOUR]->get_name()) << endl;
 }
 void player::set_reduce()
 {
@@ -2947,6 +3140,11 @@ void player::set_reduce()
 	{
 		reduce = 1;
 	}
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			reduce += slots[i]->get_attribute(REDUCE);
+	}
 }
 int player::get_reduce()
 {
@@ -2955,6 +3153,11 @@ int player::get_reduce()
 void player::set_web_strength(int i)
 {
 	web_str += i;
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			web_str += slots[i]->get_attribute(WEB_STR);
+	}
 }
 int player::get_web_strength()
 {
@@ -2963,6 +3166,11 @@ int player::get_web_strength()
 void player::set_evade()
 {
 	evade = (skill + intell);
+	for (int i = 0; i < Count; i++)
+	{
+		if (slots[i] != NULL)
+			evade += slots[i]->get_attribute(EVADE);
+	}
 }
 int player::get_evade()
 {

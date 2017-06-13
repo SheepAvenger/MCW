@@ -2,6 +2,7 @@
 #define Hero_h
 #include "Equipment.h"
 #include <map>
+#include <vector>
 #include <iostream>
 #include <string>
 using namespace std;
@@ -94,6 +95,7 @@ public:
 	//Equipment
 	void add_to_bag(Equipment**);
 	void set_slots();
+	void print_bag();
 
 
 private:
@@ -101,7 +103,10 @@ private:
 	enum item_slots{BELT, GLOVES, ARMOUR, Count};
 	//Equipment
 	Equipment* slots[Count];
-	multimap<string, Equipment*>* bag;
+	vector<Equipment*> bag;
+	void update_stats();
+	void check_item_set();
+	//multimap<string, Equipment*>* bag;
 
 	//strings
 	string hero;

@@ -1762,11 +1762,11 @@ int enemies::get_level()
 }
 
 void enemies::set_item(string p_name)
-{
-	int number = rand() % 6;
+{	
+	int number = rand() % (is_boss ? 6 : (is_villian ? 6 : 3));
 	for (int i = 0; i < number; i++)
 	{
-		items[i] = new Equipment(e_lvl, p_name);
+		items[i] = new Equipment(e_lvl, p_name, (is_boss || is_villian));
 	}
 }
 Equipment** enemies::get_item()
@@ -6911,14 +6911,7 @@ void enemies::set_boss()
 }
 bool enemies::get_boss()
 {
-	if (is_boss)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return is_boss;
 }
 void enemies::set_villian()
 {
@@ -6926,14 +6919,7 @@ void enemies::set_villian()
 }
 bool enemies::get_villian()
 {
-	if (is_villian)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return is_villian;
 }
 void enemies::set_regen()
 {

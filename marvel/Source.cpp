@@ -7063,6 +7063,8 @@ void events1(player* p, Map* m)
 							options.push_back("options");
 							std::cout << "1. Hero Details" << endl;
 							std::cout << "2. Save" << endl;
+							std::cout << "3. Bag" << endl;
+
 
 							char input = 0;
 							bool menu = true;
@@ -7116,6 +7118,34 @@ void events1(player* p, Map* m)
 											std::cout << "Please enter a vaild choice." << endl;
 										}
 									}
+								}
+								else if (input == '3')
+								{
+									system("cls");
+									cout << "1. Display bag" << endl;
+									cout << "2. Equip items" << endl;
+									do {
+										input = selection(input);
+										if (input == '1')
+										{
+											system("cls");
+											p->print_bag();
+										}
+										else if(input == '2')
+										{
+											system("cls");
+											p->set_slots();
+										}
+										else
+										{
+											std::cout << "Please enter a vaild choice" << endl;
+										}
+									} while (input != '1' || input != '2');
+									
+									system("pause");
+									system("cls");
+									move = false;
+									menu = false;
 								}
 								else
 								{
@@ -7679,10 +7709,6 @@ void restart_cleanup()
 
 	//map
 	int people = 0;
-	while (city.size() != 0)
-	{
-		city.pop_back();
-	}
 	int map_height = 6;
 	int map_length = 15;
 	const int player_xy = 2;
@@ -8545,9 +8571,13 @@ int main()
 							{
 								restart_cleanup();
 								system("cls");
-								team.pop_back();
-								//map->clear_map();
-								//delete map;
+								//team.pop_back();
+								map->clear_map();//was commented out
+								delete map; // was commented out
+								while (city.size() != 0)
+								{
+									city.pop_back();
+								}
 								Map* map = new Map();
 
 								move = false;
@@ -8600,7 +8630,7 @@ int main()
 					system("cls");
 
 				}
-				if (mission_stats == false)
+				if (mission_stats == false && Player->get_health() > 0)
 				{
 					map->generate_map();
 				}
@@ -8697,9 +8727,11 @@ int main()
 				{
 					system("cls");
 					options.push_back("options");
-					std::cout<< "1. Hero Details" << endl;
-					std::cout<< "2. Save" << endl;
+					std::cout << "1. Hero Details" << endl;
+					std::cout << "2. Save" << endl;
 					std::cout << "3. Quit" << endl;
+					std::cout << "4. Bag" << endl;
+
 
 					char input = 0;
 					bool menu = true;
@@ -8778,6 +8810,35 @@ int main()
 						{
 							return 0;
 						}
+						else if (input == '4')
+						{
+							system("cls");
+							cout << "1. Display bag" << endl;
+							cout << "2. Equip items" << endl;
+							do {
+								input = selection(input);
+								if (input == '1')
+								{
+									system("cls");
+									Player->print_bag();
+								}
+								else if (input == '2')
+								{
+									system("cls");
+									Player->set_slots();
+								}
+								else
+								{
+									std::cout << "Please enter a vaild choice" << endl;
+								}
+							} while (input != '1' && input != '2');
+
+							system("pause");
+							system("cls");
+							move = false;
+							menu = false;
+						}
+
 						else
 						{
 							std::cout<< "Please enter a vaild choice" << endl;
