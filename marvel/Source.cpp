@@ -2589,6 +2589,7 @@ void fight(player* p, enemies* e)
 								}
 								else
 								{
+									team[j]->reset_defense();
 									team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
 								}
 								
@@ -2666,6 +2667,7 @@ void fight(player* p, enemies* e)
 								}
 								else
 								{
+									team[j]->reset_defense();
 									team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 								}
 							}
@@ -2696,6 +2698,7 @@ void fight(player* p, enemies* e)
 										}
 										else
 										{
+											group[i]->reset_defense();
 											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
 										}
 										if (run + 1 >= group[i]->get_level())
@@ -2739,6 +2742,7 @@ void fight(player* p, enemies* e)
 										}
 										else
 										{
+											group[i]->reset_defense();
 											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 										}
 
@@ -2761,6 +2765,7 @@ void fight(player* p, enemies* e)
 									}
 									else
 									{
+										group[i]->reset_defense();
 										group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 									}
 
@@ -2810,6 +2815,7 @@ void fight(player* p, enemies* e)
 														}
 														else
 														{
+															team[j]->reset_defense();
 															team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 														}
 													}
@@ -2905,6 +2911,7 @@ void fight(player* p, enemies* e)
 															}
 															else
 															{
+																team[j]->reset_defense();
 																team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 															}
 														}
@@ -3212,6 +3219,7 @@ void fight(player* p, enemies* e)
 																			}
 																			else
 																			{
+																				team[j]->reset_defense();
 																				team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 																			}
 																		}
@@ -3497,6 +3505,7 @@ void fight(player* p, enemies* e)
 																			}
 																			else
 																			{
+																				team[j]->reset_defense();
 																				team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 																			}
 																		}
@@ -3582,6 +3591,7 @@ void fight(player* p, enemies* e)
 											}
 											else
 											{
+												team[j]->reset_defense();
 												team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
 											}
 											
@@ -3661,6 +3671,7 @@ void fight(player* p, enemies* e)
 											}
 											else
 											{
+												team[j]->reset_defense();
 												team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 											}
 										}
@@ -3686,6 +3697,7 @@ void fight(player* p, enemies* e)
 												}
 												else
 												{
+													group[i]->reset_defense();
 													group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
 												}
 												if (run + 1 >= group[i]->get_level())
@@ -3728,6 +3740,7 @@ void fight(player* p, enemies* e)
 												}
 												else
 												{
+													group[i]->reset_defense();
 													group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 												}
 
@@ -3749,6 +3762,7 @@ void fight(player* p, enemies* e)
 											}
 											else
 											{
+												group[i]->reset_defense();
 												group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 											}
 										}
@@ -3846,6 +3860,7 @@ void fight(player* p, enemies* e)
 					}
 					else
 					{
+						team[j]->reset_defense();
 						team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 					}
 				}
@@ -3993,6 +4008,7 @@ void fight(player* p, enemies* e)
 												}
 												else
 												{
+													team[j]->reset_defense();
 													team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 												}
 											}
@@ -4055,6 +4071,7 @@ void fight(player* p, enemies* e)
 									}
 									else
 									{
+										team[j]->reset_defense();
 										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
 									}										
 									int second_chance = rand() % 100;
@@ -4129,6 +4146,7 @@ void fight(player* p, enemies* e)
 									}
 									else
 									{
+										team[j]->reset_defense();
 										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 									}
 								}
@@ -4153,6 +4171,7 @@ void fight(player* p, enemies* e)
 										}
 										else
 										{
+											group[i]->reset_defense();
 											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
 										}											if (run + 1 >= group[i]->get_level())
 										{
@@ -4192,6 +4211,7 @@ void fight(player* p, enemies* e)
 										}
 										else
 										{
+											group[i]->reset_defense();
 											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 										}
 									}
@@ -4212,6 +4232,7 @@ void fight(player* p, enemies* e)
 									}
 									else
 									{
+										group[i]->reset_defense();
 										group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 									}
 								}
@@ -4285,6 +4306,7 @@ void fight(player* p, enemies* e)
 												}
 												else
 												{
+													team[j]->reset_defense();
 													team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 												}
 											}
@@ -4350,6 +4372,7 @@ void fight(player* p, enemies* e)
 									}
 									else
 									{
+										team[j]->reset_defense();
 										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
 									}										
 									int second_chance = rand() % 100;
@@ -4425,6 +4448,7 @@ void fight(player* p, enemies* e)
 									}
 									else
 									{
+										team[j]->reset_defense();
 										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 									}
 								}
@@ -4453,6 +4477,7 @@ void fight(player* p, enemies* e)
 										}
 										else
 										{
+											group[i]->reset_defense();
 											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
 										}											if (run + 1 >= group[i]->get_level())
 										{
@@ -4491,6 +4516,7 @@ void fight(player* p, enemies* e)
 										}
 										else
 										{
+											group[i]->reset_defense();
 											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 										}
 									}
@@ -4511,6 +4537,7 @@ void fight(player* p, enemies* e)
 									}
 									else
 									{
+										group[i]->reset_defense();
 										group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 									}
 								}
@@ -4648,6 +4675,7 @@ void fight(player* p, enemies* e)
 													}
 													else
 													{
+														team[j]->reset_defense();
 														team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 													}
 												}
@@ -4812,6 +4840,7 @@ void fight(player* p, enemies* e)
 												}
 												else
 												{
+													team[j]->reset_defense();
 													team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 												}
 											}
@@ -4877,6 +4906,7 @@ void fight(player* p, enemies* e)
 							}
 							else
 							{
+								team[j]->reset_defense();
 								team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
 							}								
 							int second_chance = rand() % 100;
@@ -4952,6 +4982,7 @@ void fight(player* p, enemies* e)
 							}
 							else
 							{
+								team[j]->reset_defense();
 								team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 							}
 						}
@@ -4980,6 +5011,7 @@ void fight(player* p, enemies* e)
 								}
 								else
 								{
+									group[i]->reset_defense();
 									group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
 								}
 
@@ -5020,6 +5052,7 @@ void fight(player* p, enemies* e)
 								}
 								else
 								{
+									group[i]->reset_defense();
 									group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 								}
 							}
@@ -5040,6 +5073,7 @@ void fight(player* p, enemies* e)
 							}
 							else
 							{
+								group[i]->reset_defense();
 								group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
 							}
 						}
@@ -5111,6 +5145,7 @@ void fight(player* p, enemies* e)
 				}
 				else
 				{
+					team[j]->reset_defense();
 					team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
 				}
 			}
@@ -5129,6 +5164,7 @@ void fight(player* p, enemies* e)
 				}
 				else
 				{
+					team[j]->reset_defense();
 					team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
 				}
 			}

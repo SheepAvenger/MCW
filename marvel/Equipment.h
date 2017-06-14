@@ -20,6 +20,8 @@ private:
 		string rarity;
 		string name;
 		string setName;
+		int level;
+		int rank;
 		int value;
 		int stats[6];
 		int attributes[9];
@@ -41,9 +43,10 @@ private:
 	void set_value();
 	void set_stats(int, string);
 	void set_attributes(int, string, string);
+	void set_level(int);
 public:
 	Equipment(int, string, bool);
-	Equipment(string, string, string, int, int[6], int[9]);
+	Equipment(string, string, string, int, int, int[6], int[9]);
 	string get_type();
 	string get_rarity();
 	string get_name();
@@ -51,6 +54,7 @@ public:
 	int get_value();
 	int get_stats(int);
 	int get_attribute(int);
+	int get_level();
 	void print_stats();
 	void print_attributes(string);
 	void print(string);

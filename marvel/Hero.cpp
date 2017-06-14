@@ -8,6 +8,7 @@
 #include "enemies.h"
 #include "Enum.h"
 using namespace std;
+bool mySort(Equipment*, Equipment*);
 
 player::player()
 {
@@ -617,7 +618,7 @@ void player::add_to_bag(Equipment** items)
 		i++;
 
 	}
-	sort(bag.begin(), bag.begin());
+	sort(bag.begin(), bag.begin(), mySort);
 	//
 }
 void player::set_slots()
@@ -637,6 +638,7 @@ void player::set_slots()
 			cout << "Glove: " << (slots[GLOVES] == NULL ? "Empty" : slots[GLOVES]->get_name()) << endl;
 			cout << "Belt: " << (slots[BELT] == NULL ? "Empty" : slots[BELT]->get_name()) << endl;
 			cout << "Armour: " << (slots[ARMOUR] == NULL ? "Empty" : slots[ARMOUR]->get_name()) << endl << endl;
+			cout << "0. Exit Menu\n";
 			cout << "-----------------Bag-----------------\n";
 			for (int i = 0; i < bag.size(); i++)
 			{
@@ -647,7 +649,10 @@ void player::set_slots()
 			{
 				input = _getch();
 
-			} while (input >= (bag.size() + 48) && input <= '0');
+			} while (input >= (bag.size() + 48) && input < '0'); //check this
+			cout << (int)input << " value of input\n";
+			if (input == '0')
+				return;
 			system("cls");
 			bag[input - '1']->print(hero);
 			cout << "Equip " << bag[input - '1']->get_name() << "?\n";
@@ -695,7 +700,7 @@ void player::set_slots()
 		bag[bag.size() - 1] = bag[input - '1'];
 		bag[input - '1'] = temp;
 		bag.pop_back();
-		sort(bag.begin(), bag.end());
+		sort(bag.begin(), bag.end(), mySort);
 		check_item_set();
 		update_stats();
 		print_stat();
@@ -745,6 +750,35 @@ void player::update_stats()
 	set_regen();
 	set_reduce();
 	set_web_strength(0);
+}
+bool mySort(Equipment* a, Equipment* b)
+{
+	if (a->get_name()[0] == 'C')
+	{
+		cout << "1\n";
+		return true;
+	}
+	else if (b->get_name()[0] == 'C')
+	{
+		cout << "2\n";
+		return false;
+	}
+	else if (a->get_name()[0] == 'U')
+	{
+		cout << "3\n";
+		return true;
+	}
+	else if (b->get_name()[0] == 'U')
+	{
+		cout << "4\n";
+		return false;
+	}
+	else
+	{
+		cout << "Last\n";
+		return 	a->get_name()[0] >= b->get_name()[0] && a->get_level() > b->get_level();
+	}
+
 }
 
 void player::set_attack(enemies* h, player* p)

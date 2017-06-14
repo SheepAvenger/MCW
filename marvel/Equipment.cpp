@@ -7,25 +7,30 @@
 Equipment::Equipment(int lvl, string p_name, bool is_boss)
 {
 	item = new Item;
+	item->rank = 0;
 	set_type();
 	set_rarity(is_boss);
 	set_name();
 	set_value();
 	set_stats(lvl, item->rarity);
 	set_attributes(lvl, p_name, item->rarity);
+	set_level(lvl);
+
 }
 //For special Boss equipment
-Equipment::Equipment(string name, string type, string rarity, int value, int stats[6], int attributes[9])
+Equipment::Equipment(string name, string type, string rarity, int lvl, int value, int stats[6], int attributes[9])
 {
 	item = new Item;
 	item->name = name;
 	item->type = type;
 	item->rarity = rarity;
 	item->value = value;
+	item->level = lvl;
 	for (int i = 0; i < 9; i++)
 	{
 		if(i < 6) item->stats[i] = stats[i];
 		item->attributes[i] = attributes[i];
+		item->rank += stats[i] + attributes[i];
 	}
 }
 
@@ -69,6 +74,17 @@ string Equipment::get_type()
 	return item->type;
 }
 
+void Equipment::set_level(int lvl)
+{
+	item->rank += (item->rarity[0] == 'L' ? 4 : (item->rarity[0] == 'R' ? 3 : item->rarity[0] == 'U' ? 2 : 1));
+
+	item->level = item->rank % lvl;
+	item->level += (item->level == 0 ? lvl : 0);
+}
+int Equipment::get_level()
+{
+	return item->level;
+}
 
 void Equipment::set_rarity(bool is_boss)
 {
@@ -78,7 +94,6 @@ void Equipment::set_rarity(bool is_boss)
 		item->rarity = (rarity > 89 ? "Lengendary" : (rarity > 69 ? "Rare" : (rarity > 39 ? "Uncommon" : "Common")));
 	else
 		item->rarity = (rarity > 97 ? "Lengendary" : (rarity > 90 ? "Rare" : (rarity > 49 ? "Uncommon" : "Common")));
-
 }
 string Equipment::get_rarity()
 {
@@ -107,7 +122,11 @@ void Equipment::set_stats(int lvl, string rarity)
 	//TODO
 	lvl += (rarity[0] == 'L' ? 3 : (rarity[0] == 'R' ? 2 : (rarity[0] == 'U' ? 1 : 0)));
 	for (int i = 0; i < 6; i++)
+	{
 		item->stats[i] = rand() % lvl;
+		item->rank += item->stats[i];
+	}
+	item->rank /= 6;
 }
 int Equipment::get_stats(int index)
 {
@@ -130,7 +149,11 @@ void Equipment::set_attributes(int lvl, string p_name, string rarity)
 	//TODO
 	lvl += (rarity[0] == 'L' ? 3 : (rarity[0] == 'R' ? 2 : (rarity[0] == 'U' ? 1 : 0)));
 	for (int i = 0; i < 9; i++)
+	{
 		item->attributes[i] = rand() % lvl;
+		item->rank += item->attributes[i];
+	}
+	item->rank /= 9;
 }
 int Equipment::get_attribute(int index)
 {
@@ -154,6 +177,7 @@ void Equipment::print(string p_name)
 	cout << "Name: " << item->name << endl;
 	cout << "Type: " << item->type << endl;
 	cout << "Rarity: " << item->rarity << endl;
+	cout << "Level: " << item->level << endl;
 	cout << "Value: " << item->value << endl << endl;
 	cout << "\n--------------------------Stats--------------------------\n";
 	print_stats();
