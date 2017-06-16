@@ -34,6 +34,7 @@ player::player()
 	rep = 0;
 	web_str = 0;
 	ko = false;
+	is_on_fire = false;
 	reg = "";
 	hero = "";
 	power = "";
@@ -3120,6 +3121,14 @@ int player::get_bleed_dmg()
 int player::get_bleed()
 {
 	return bleed;
+}
+void player::set_is_on_fire(bool fire)
+{
+	is_on_fire = fire;
+}
+bool player::get_is_on_fire()
+{
+	return is_on_fire;
 }
 void player::set_reputation(double i)
 {

@@ -7,11 +7,25 @@
 #include <random>
 #include <windows.h>
 #include<fstream>
+#include <mutex>
+#include<shared_mutex>
+#include <thread>
+#include <control.h>
+#include <condition_variable>
 #include "Hero.h"
 #include "enemies.h"
 #include "Enum.h"
 
 using namespace std;
+
+//fighting
+mutex m;
+condition_variable cv;
+bool escape = true;
+bool fighting = true;
+bool player_att = false;
+//bool enemie_att = false;
+
 
 bool loaded = false;
 
@@ -24,6 +38,7 @@ vector <string> saved_people; //possible use for the sewer levels
 
 //characters
 vector<enemies*>group; //hold the enemies
+vector<thread*>enemies_thread;
 vector<player*> team; // hold the player
 vector<string>die; // hold dead heros
 vector<string>v_die; // hold dead villians
@@ -1083,6 +1098,8 @@ void counter_attack(player *p, enemies *e, string who, int h_counter, int e_coun
 	{
 		std::cout << p->get_hero() << " counters the attack!" << endl;
 		std::cout << p->get_hero() << " attacks " << e->get_enemies() << endl;
+		system("pause");
+		system("cls");
 		p->set_attack(e, p);
 		if (p->get_power() != "p" && p->get_power() != "Bleed")
 		{
@@ -1112,6 +1129,8 @@ void counter_attack(player *p, enemies *e, string who, int h_counter, int e_coun
 	{
 		std::cout << e->get_enemies() << " counters the attack!" << endl;
 		std::cout << e->get_enemies() << " attacks " << p->get_hero() << endl;
+		system("pause");
+		system("cls");
 		e->set_attack(p, e);
 		h_counter > e_counter ? counter_attack(p, e, "hero", rand() % h_counter, rand() % e_counter) : 0;
 
@@ -1126,6 +1145,8 @@ void counter_attack(player *p, enemies *e, string who, int h_counter, int e_coun
 			//group[i]->set_bleed_dmg(+team[j]->get_bleed());
 		}
 	}
+	system("pause");
+	system("cls");
 }
 
 void dead_enemy()
@@ -1281,6 +1302,15 @@ void dead_enemy()
 				temp = group[i];
 				group[i] = group[group.size() - 1];
 				group[group.size() - 1] = temp;
+				group[group.size() - 1]->set_turn(true);
+				player_att = false;
+				cv.notify_all();
+				{
+					m.unlock();
+					std::unique_lock<std::mutex> lk(m);
+					cv.wait(lk, [] {return player_att; });//bool here
+				}
+				m.lock();
 				delete group[group.size() - 1];
 				group.pop_back();
 				//delete temp;
@@ -1307,7 +1337,7 @@ void regen_hlth(enemies* e)
 
 
 
-void explosion_result(bool a, bool b)
+void explosion_result()
 {
 	if (explosion == true)
 	{
@@ -1491,11 +1521,11 @@ void explosion_result(bool a, bool b)
 						}
 						system("pause");
 						system("cls");
-						a = false;
+						/*a = false;
 						if (group.size() <= 0)
 						{
 							b = false;
-						}
+						}*/
 
 					}// end if health
 					else
@@ -1509,11 +1539,11 @@ void explosion_result(bool a, bool b)
 						if (group[i]->get_health() <= 0)
 						{
 							dead_enemy();
-							a = false;
+							/*a = false;
 							if (group.size() <= 0)
 							{
 								b = false;
-							}
+							}*/
 						}
 
 
@@ -1840,13 +1870,1448 @@ void rest()
 	team[j]->set_health(team[j]->get_durability() * (15 + team[j]->get_level()) + 100);
 }
 
+void player_hit(int j, int index)
+{
+	group[index]->set_attack(team[j], group[index]);
+	group[index]->get_power();
+	if (group[index]->get_power() == "fire")
+	{
+		team[j]->set_is_on_fire(true);
+	}
+	if (group[index]->get_power() == "Multiply")
+	{
+		std::cout << group[index]->get_enemies() << " divided!" << endl;
+		group[index]->set_power("");
+		enemies *m2 = new enemies(*group[index]);
+		group.push_back(m2);
+	}
+
+	if (group[index]->get_power() == "Nano Assault")
+	{
+		team[j]->set_attack(group[index], team[j]);
+		std::cout << team[j]->get_attack() << " Damage!" << endl;
+		team[j]->set_health(-team[j]->get_attack());
+		std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
+		system("pause");
+		system("cls");
+	}
+	else
+	{
+		if (team[j]->get_hero() == "Iron Man" || team[j]->get_hero() == "Mr. Fantastic")
+		{
+			team[j]->set_reduce();
+			if (group[index]->get_attack() - team[j]->get_reduce() <= 0)
+			{
+				std::cout << "0 Damage!" << endl;
+				team[j]->set_health(-0);
+			}
+			else
+			{
+				std::cout << group[index]->get_attack() - team[j]->get_reduce() << " Damage!" << endl;
+
+				team[j]->set_health(-group[index]->get_attack());
+				if (team[j]->get_health() > 0)
+				{
+					team[j]->set_health(+team[j]->get_reduce());
+				}
+			}
+			std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
+		}
+		else if (group[index]->get_power() == "Bleed" && team[j]->get_hero() != "Mr. Fantastic")
+		{
+			std::cout << group[index]->get_attack() << " Damage!" << endl;
+			team[j]->set_health(-group[index]->get_attack());
+			std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
+			group[index]->set_bleed_dmg(+group[index]->get_bleed());
+			team[j]->set_health(-group[index]->get_bleed_dmg());
+			std::cout << team[j]->get_hero() << " is bleeding " << team[j]->get_health() << " Health left" << endl;
+			system("pause");
+			system("cls");
+
+		}
+		else
+		{
+			std::cout << group[index]->get_attack() << " Damage!" << endl;
+			team[j]->set_health(-group[index]->get_attack());
+			std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
+		}
+
+	}
+}
+
+void player_blocks(int j, int index, int block)
+{
+	std::cout << team[j]->get_hero() << " blocks the incoming attack!" << endl;
+	group[index]->set_attack(team[j], group[index]);
+	group[index]->get_power();
+	if (group[index]->get_power() == "fire")
+	{
+		team[j]->set_is_on_fire(true);
+	}
+	if (group[index]->get_power() == "Multiply")
+	{
+		std::cout << group[index]->get_enemies() << " divided!" << endl;
+		group[index]->set_power("");
+		enemies *m1 = new enemies(*group[index]);
+		group.push_back(m1);
+	}
+
+	if (group[index]->get_power() == "Nano Assault")
+	{
+		team[j]->set_attack(group[index], team[j]);
+		std::cout << team[j]->get_attack() / block << " Damage!" << endl;
+		team[j]->set_health(-team[j]->get_attack() / block);
+		std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
+		system("pause");
+		system("cls");
+	}
+	else
+	{
+		if (team[j]->get_hero() == "Iron Man" || team[j]->get_hero() == "Mr. Fantastic")
+		{
+			team[j]->set_reduce();
+			if ((group[index]->get_attack() / block) - team[j]->get_reduce() <= 0)
+			{
+				std::cout << "0 Damage!" << endl;
+				team[j]->set_health(-0);
+			}
+			else
+			{
+				std::cout << (group[index]->get_attack() / block) - team[j]->get_reduce() << " Damage!" << endl;
+				team[j]->set_health(-group[index]->get_attack() / block);
+				if (team[j]->get_health() > 0)
+				{
+					team[j]->set_health(+team[j]->get_reduce());
+				}
+
+			}
+			std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
+
+		}
+		else if (team[j]->get_hero() == "Captain America")
+		{
+			std::cout << group[index]->get_attack() / block << " Damage!" << endl;
+			team[j]->set_health(-group[index]->get_attack() / block);
+			std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
+			group[index]->set_evade();
+			if (group[index]->get_evade() == false)
+			{
+				group[index]->set_health(-(group[index]->get_attack() - (group[index]->get_attack() / block)));
+				std::cout << team[j]->get_hero() << "'s shield reflects some of the Damage back!" << endl;
+				std::cout << group[index]->get_enemies() << " has " << group[index]->get_health() << " left" << endl;
+
+			}
+			system("pause");
+
+			if (group[index]->get_health() <= 0)
+				dead_enemy();
+		}
+		else
+		{
+			std::cout << group[index]->get_attack() / block << " Damage!" << endl;
+			team[j]->set_health(-group[index]->get_attack() / block);
+			std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
+		}
+
+	}
+}
+
+void player_evades(int j, int index)
+{
+	std::cout << group[index]->get_enemies() << " Is attacking!" << endl;
+	system("pause");
+	system("cls");
+	if (team[j]->get_hero() == "Spiderman")
+	{
+		std::cout << "Spidy sense is tingling!" << endl;
+	}
+	std::cout << team[j]->get_hero() << " evades the on comming attack!" << endl;
+	int h_counter = rand() % team[j]->get_speed() + team[j]->get_Cskill();
+	int e_counter = rand() % group[index]->get_speed() + group[index]->get_Cskill();
+	if (h_counter > e_counter)
+	{
+		counter_attack(team[j], group[index], "hero", h_counter, e_counter);
+	}
+	system("pause");
+	system("cls");
+	if (group[index]->get_health() <= 0)
+		dead_enemy();
+
+	int rand_int = rand() % 5;
+	team[j]->reset_defense();
+	team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
+
+	if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
+	{
+		if (team[j]->get_defense_mod() == true)
+		{
+			if (team[j]->get_is_on_fire())
+			{
+				std::cout << team[j]->get_hero() << " is still on fire!" << endl;
+				std::cout << group[index]->get_level() << " Damage!" << endl;
+				team[j]->set_health(-group[index]->get_level());
+				std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
+			}
+			if (team[j]->get_defense() > 0)
+			{
+				while (team[j]->get_defense() > 0)
+				{
+					team[j]->set_defense(-1);
+				}
+			}
+			team[j]->set_defense_mod(0, group[index]->get_power(), group[index]->get_ice());
+		}
+		else
+		{
+			team[j]->reset_defense();
+			team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
+		}
+		int second_chance = rand() % 100;
+		if (second_chance > 80)
+		{
+			escape = runaway(group[index], team[j]);
+		}
+		if (escape)
+		{
+			fighting = false;
+			return;
+		}
+
+	}
+	else
+	{
+		if (team[j]->get_defense_mod() == true)
+		{
+			if (team[j]->get_is_on_fire())
+			{
+				std::cout << team[j]->get_hero() << " is still on fire!" << endl;
+				std::cout << group[index]->get_level() << " Damage!" << endl;
+				team[j]->set_health(-group[index]->get_level());
+				std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
+			}
+			if (team[j]->get_defense() > 0)
+			{
+				while (team[j]->get_defense() > 0)
+				{
+					team[j]->set_defense(-1);
+				}
+			}
+			team[j]->set_defense_mod(0, group[index]->get_power(), group[index]->get_ice());
+		}
+		else
+		{
+			team[j]->reset_defense();
+			team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
+		}
+	}
+	group[index]->reset_defense();
+	group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_speed() + group[index]->get_level() + group[index]->get_intelligence() + rand_int);
+	if (group[index]->get_boss())
+	{
+		if (group[index]->get_health() < (group[index]->get_durability() * (15 + group[index]->get_level()) + 100) / 3)
+		{
+
+			int run = rand() % group[index]->get_level();
+			if (group[index]->get_defense_mod() == true)
+			{
+				if (group[index]->get_defense() > 0)
+				{
+					while (group[index]->get_defense() > 0)
+					{
+						group[index]->set_defense(-1);
+					}
+				}
+				group[index]->set_defense_mod(0);
+			}
+			else
+			{
+				group[index]->reset_defense();
+				group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_level() + group[index]->get_speed() + group[index]->get_intelligence() + rand_int + run);
+			}
+			if (run + 1 >= group[index]->get_level())
+			{
+				std::cout << group[index]->get_enemies() << " manages to escape!" << endl;
+				std::cout << team[j]->get_hero() << " gained " << group[index]->get_experience() << " exp." << endl;
+				team[j]->set_current_experience(group[index], 0);
+				std::cout << "You now have " << team[j]->get_current_experience() << " exp." << endl;
+				team[j]->set_reputation(group[index]->get_reputation());
+				std::cout << "Your Current Reputation is: " << team[j]->get_reputation() << endl;
+
+				system("pause");
+				system("cls");
+
+				fighting = false;
+				return;
+			}
+		}
+		else
+		{
+			if (group[index]->get_defense_mod() == true)
+			{
+				if (group[index]->get_defense() > 0)
+				{
+					while (group[index]->get_defense() > 0)
+					{
+						group[index]->set_defense(-1);
+					}
+				}
+				group[index]->set_defense_mod(0);
+			}
+			else
+			{
+				group[index]->reset_defense();
+				group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_level() + group[index]->get_speed() + group[index]->get_intelligence() + rand_int);
+			}
+		}
+
+	}
+	else
+	{
+		if (group[index]->get_defense_mod() == true)
+		{
+			if (group[index]->get_defense() > 0)
+			{
+				while (group[index]->get_defense() > 0)
+				{
+					group[index]->set_defense(-1);
+				}
+			}
+			group[index]->set_defense_mod(0);
+		}
+		else
+		{
+			group[index]->reset_defense();
+			group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_level() + group[index]->get_speed() + group[index]->get_intelligence() + rand_int);
+		}
+	}
+	system("pause");
+	system("cls");
+}
+
+bool runaway(enemies* e, player* p)
+{
+	while (1)
+	{
+		std::cout << p->get_hero() << " sees and opening to escape. will you runaway?" << endl;
+		std::cout << "1. Yes, try to runaway" << endl;
+		std::cout << "2. No, stay and fight" << endl;
+
+		char to_run = 0;
+		to_run = selection(to_run);
+
+		if (to_run == '1')
+		{
+
+			int run = rand() % 5;
+			int hero = rand() % p->get_level();
+			int bad = rand() % e->get_level();
+			if (hero + run >= bad)
+			{
+				std::cout << p->get_hero() << " manages to runaway." << endl;
+				system("pause");
+				system("cls");
+				//group.clear();
+				return true;
+
+			}
+			else
+			{
+				std::cout << p->get_hero() << " can't escape!" << endl;
+				return false;
+			}
+		}
+		else if (to_run == '2')
+		{
+			std::cout << p->get_hero() << " decides to stay and fight." << endl;
+			return false;
+		}
+		else
+		{
+			std::cout << "Please select a correct choice." << endl;
+		}
+	}
+}
+
+void hero_fight()
+{
+	int j = 0;
+	int rand_turn = 0;
+
+	int index = rand() % group.size();
+	if (team[j]->get_defense() >= group[index]->get_defense())
+		player_att = true;
+	else
+	{
+		rand_turn = rand() % group.size();
+		group[rand_turn]->set_turn(true);
+		cv.notify_all();
+	}
+	while (fighting) // clean this up
+	{
+		{
+			std::unique_lock<std::mutex> lk(m);
+			cv.wait(lk, [] {return player_att; });
+		}
+		{
+			std::lock_guard<std::mutex> lk(m);
+			player_att = false;
+
+			if (fighting && team[j]->get_health() > 0)
+			{
+				std::cout << team[j]->get_hero() << " Attacks!" << endl;
+
+				int i = 0;
+				if (group.size() == 0)
+				{
+					fighting = false;
+					return;
+				}
+
+				std::cout << "Who will you attack? ";
+				std::cout << endl;
+				for (size_t index = 0; index < group.size(); index++)
+				{
+					if (group.size() == 1)
+					{
+						break;
+					}
+					std::cout << index << ". " << group[index]->get_enemies() << endl;
+				}
+				string a;
+
+				if (group.size() == 1)
+				{
+					a = group[0]->get_enemies();
+				}
+				else
+				{
+					bool attack = true;
+					while (attack)
+					{
+						explosion_result();
+
+						char choice = 0;
+						choice = selection(choice);
+						if ((size_t)(choice - 48) >= group.size())
+						{
+							std::cout << "Please select a valid choice." << endl;
+						}
+						else
+						{
+							a = group[(choice - 48)]->get_enemies();
+							//swap(group[i], group[(choice - 48)]);
+							i = choice - 48;
+							attack = false;
+						}
+					}
+
+
+				}
+
+				if (a == group[i]->get_enemies())
+				{
+					explosion_result();
+
+					std::cout << team[j]->get_hero() << " Attacks " << group[i]->get_enemies() << "!" << endl;
+					system("pause");
+					system("cls");
+
+					if (group.size() > 0)//while (group.size() > 0)
+					{
+						explosion_result();
+						if (team[j]->get_hero() == "Wolverine")
+						{
+							team[j]->max_hlth();
+							if (team[j]->get_health() < team[j]->get_max())
+							{
+								if (group[i]->get_power() == "Power Steal")
+								{
+									std::cout << team[j]->get_hero() << " can't regenerate health!" << endl;
+								}
+								else
+								{
+									std::cout << team[j]->get_hero() << ", Regenerates " << team[j]->get_regen() << " Health." << endl;
+									team[j]->set_health(+team[j]->get_regen());
+									std::cout << "Current Health: " << team[j]->get_health() << endl;
+								}
+
+								system("pause");
+								system("cls");
+							}
+						}
+						if (group.size() > 0)
+						{
+							if (group[0]->get_regen() > 0)
+							{
+								regen_hlth(group[0]);
+							}
+						}
+						std::cout << team[j]->get_hero() << "'s " << " Attack list." << endl;
+						if (i >= group.size())
+						{
+							i = group.size() - 1;
+						}
+						team[j]->set_attack(group[i], team[j]);
+						team[j]->get_power();
+						if (team[j]->get_power() != "p" && team[j]->get_power() != "Bleed")
+						{
+							if (team[j]->get_power() == "Elastic Crush")
+							{
+								for (size_t i = 0; i < group.size(); i++)
+								{
+									int new_dmg = team[j]->get_attack();
+									if (group[i]->get_defense_mod() == true)
+									{
+										new_dmg = new_dmg * 2;
+										std::cout << group[i]->get_enemies() << " is stunned and cannot defend from the oncoming attack!" << endl;
+									}
+									if (group[i]->get_reduce() > 0)
+									{
+										group[i]->set_reduce();
+										if (new_dmg - group[i]->get_reduce() <= 0)
+										{
+											std::cout << "0 Damage!" << endl;
+											group[i]->set_health(-0);
+										}
+										else
+										{
+											std::cout << new_dmg - team[j]->get_reduce() << " Damage!" << endl;
+											group[i]->set_health(-new_dmg);
+											if (group[i]->get_health() > 0)
+											{
+												group[i]->set_health(+group[i]->get_reduce());
+											}
+										}
+										std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+										system("pause");
+										system("cls");
+									}
+									else
+									{
+										team[j]->set_conditon(group[i]);
+										std::cout << new_dmg << " Damage!" << endl;
+										group[i]->set_health(-new_dmg);
+										std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+										system("pause");
+										system("cls");
+									}
+								}
+							}
+							else if (team[j]->get_power() == "Elastic Smash")
+							{
+								for (size_t i = 0; i < group.size(); i++)
+								{
+									int hit_speed = rand() % (team[j]->get_speed() + team[j]->get_strength());
+									int protect = rand() % group[i]->get_defense();
+									if (hit_speed >= protect)
+									{
+										group[i]->set_defense_mod(1);
+										std::cout << group[i]->get_enemies() << " is stunned from the attack!" << endl;
+									}
+									if (group[i]->get_reduce() > 0)
+									{
+										reduce_dmg(group[i], team[j]);
+									}
+									else
+									{
+										team[j]->set_conditon(group[i]);
+										group[i]->set_evade();
+										if (group[i]->get_evade() == false)
+										{
+											std::cout << team[j]->get_attack() << " Damage!" << endl;
+											group[i]->set_health(-team[j]->get_attack());
+											std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+											system("pause");
+											system("cls");
+										}
+
+									}
+								}
+							}
+							else if (team[j]->get_power() == "Pin Ball")
+							{
+								int hit = 0;
+								for (size_t i = 0; i < group.size(); i++)
+								{
+									int momentum = rand() % (team[j]->get_speed() + team[j]->get_Cskill());
+									momentum += hit;
+									int balance = rand() % (group[i]->get_Cskill() + group[i]->get_level());
+									if (momentum >= balance)
+									{
+										group[i]->set_defense_mod(1);
+										std::cout << group[i]->get_enemies() << " is knocked down from the attack!" << endl;
+										hit++;
+									}
+
+									if (group[i]->get_reduce() > 0)
+									{
+										reduce_dmg(group[i], team[j]);
+									}
+									else
+									{
+										team[j]->set_conditon(group[i]);
+										group[i]->set_evade();
+										if (group[i]->get_evade() == false)
+										{
+											std::cout << team[j]->get_attack() << " Damage!" << endl;
+											group[i]->set_health(-team[j]->get_attack());
+											std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+											system("pause");
+											system("cls");
+										}
+
+									}
+								}
+							}
+							else if (team[j]->get_power() == "Explosive Touch")
+							{
+								explosion_victim.push_back(group[i]->get_enemies());
+
+								std::sort(explosion_victim.begin(), explosion_victim.end());
+								explosion_victim.erase(unique(explosion_victim.begin(), explosion_victim.end()), explosion_victim.end());
+
+								explosion = true;
+								system("pause");
+								system("cls");
+							}
+							else if (team[j]->get_power() == "Mega Blast")
+							{
+								for (size_t i = 0; i < group.size(); i++)
+								{
+									if (group[i]->get_reduce() > 0)
+									{
+										reduce_dmg(group[i], team[j]);
+									}
+									else
+									{
+										team[0]->set_conditon(group[i]);
+										group[i]->set_evade();
+										if (group[i]->get_evade() == false)
+										{
+											std::cout << team[0]->get_attack() << " Damage!" << endl;
+											group[i]->set_health(-team[0]->get_attack());
+											std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+											system("pause");
+											system("cls");
+										}
+									}
+								}
+							}
+							else if (team[j]->get_power() == "Prism")
+							{
+								int split = rand() % 10;
+								int split_hit = rand() % 3;
+								split_hit++;
+								if ((size_t)split_hit > group.size())
+								{
+									split_hit = group.size() - 1;
+								}
+								if (split > 4)
+								{
+									for (int i = 0; i < split_hit; i++)
+									{
+										std::cout << "The beam splits and hits " << group[i]->get_enemies() << "!" << endl;
+										if (group[i]->get_reduce() > 0)
+										{
+											reduce_dmg(group[i], team[j]);
+										}
+										else
+										{
+											team[j]->set_conditon(group[i]);
+											group[i]->set_evade();
+											if (group[i]->get_evade() == false)
+											{
+												std::cout << team[j]->get_attack() << " Damage!" << endl;
+												group[i]->set_health(-team[j]->get_attack());
+												std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+												system("pause");
+												system("cls");
+											}
+										}
+									}
+								}
+								else
+								{
+									group[i]->set_evade();
+									if (group[i]->get_evade() == false)
+									{
+										std::cout << team[j]->get_attack() << " Damage!" << endl;
+										group[i]->set_health(-team[j]->get_attack());
+										std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+										system("pause");
+										system("cls");
+									}
+								}
+							}
+							else if (team[j]->get_power() == "Cosmic Slam")
+							{
+								for (size_t i = 0; i < group.size(); i++)
+								{
+									if (team[j]->get_speed() > group[i]->get_speed())
+									{
+										std::cout << group[i]->get_enemies() << " is not fast enough to avoid the aftershock!" << endl;
+										std::cout << group[i]->get_enemies() << " is knocked to the ground!" << endl;
+										group[i]->set_defense_mod(1);
+									}
+									if (group[i]->get_reduce() > 0)
+									{
+										reduce_dmg(group[i], team[j]);
+									}
+									else
+									{
+										team[j]->set_conditon(group[i]);
+										group[i]->set_evade();
+										if (group[i]->get_evade() == false)
+										{
+											std::cout << team[j]->get_attack() << " Damage!" << endl;
+											group[i]->set_health(-team[j]->get_attack());
+											std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+											system("pause");
+											system("cls");
+										}
+									}
+								}
+							}
+							else if (team[j]->get_power() == "Nano Assault")
+							{
+								int r = rand() % 2;
+								//std::cout<< r << endl;
+								if (r == 0)
+								{
+									for (size_t i = 0; i < group.size(); i++)
+									{
+										if (group[i]->get_reduce() > 0)
+										{
+											group[i]->set_reduce();
+											group[i]->set_attack(team[j], group[i]);
+											group[i]->set_health(-group[i]->get_attack());
+											if (group[i]->get_health() > 0)
+											{
+												group[i]->set_health(+group[i]->get_reduce());
+											}
+											std::cout << group[i]->get_attack() << " Damage!" << endl;
+											std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+											system("pause");
+											system("cls");
+										}
+										else
+										{
+											group[i]->set_attack(team[j], group[i]);
+											group[i]->set_health(-group[i]->get_attack());
+											std::cout << group[i]->get_attack() << " Damage!" << endl;
+											std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+											system("pause");
+											system("cls");
+										}
+									}
+								}
+								else if (r == 1)
+								{
+									for (size_t i = 1; i <= group.size(); i++)
+									{
+										if (i >= group.size())
+										{
+											break;
+										}
+										group[i]->set_attack(team[j], group[i]);
+										group[i]->set_health(-group[i]->get_attack());
+										std::cout << group[i]->get_attack() << " Damage!" << endl;
+										std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+										system("pause");
+										system("cls");
+									}
+								}
+								else if (r == 2)
+								{
+									for (size_t i = 2; i <= group.size(); i++)
+									{
+										if (i >= group.size())
+										{
+											break;
+										}
+										group[i]->set_attack(team[j], group[i]);
+										group[i]->set_health(-group[i]->get_attack());
+										std::cout << group[i]->get_attack() << " Damage!" << endl;
+										std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+										system("pause");
+										system("cls");
+									}
+								}
+								for (size_t i = 0; i < 5; i++)
+								{
+									if (group[i]->get_health() <= 0)
+									{
+										dead_enemy();
+										if (group.size() <= 0)
+										{
+											fighting = false; //was fight
+											return; // this might work too?
+										}
+									}
+									else
+										continue;
+								}
+							}
+							else
+								for (size_t i = 0; i < group.size(); i++)
+								{
+									if (team[j]->get_power() == "Tear Gas")
+									{
+										group[i]->set_defense_mod(1);
+										std::cout << group[i]->get_enemies() << " is unable to see due to the tear gas!" << endl;
+									}
+									else if (team[j]->get_power() == "Widow's Bite")
+									{
+										group[i]->set_defense_mod(1);
+										std::cout << group[i]->get_enemies() << " is stunned from the electricity!" << endl;
+									}
+									if (group[i]->get_reduce() > 0)
+									{
+										reduce_dmg(group[i], team[j]);
+									}
+									else
+									{
+										team[j]->set_conditon(group[i]);
+										group[i]->set_evade();
+										if (group[i]->get_evade() == false)
+										{
+											std::cout << team[j]->get_attack() << " Damage!" << endl;
+											group[i]->set_health(-team[j]->get_attack());
+											std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+											system("pause");
+											system("cls");
+										}
+									}
+								}
+							for (size_t i = 0; i < 5; i++)
+							{
+								if (group.size() == 0)
+								{
+									fighting = false;
+									return;
+								}
+								if (i >= group.size())
+								{
+									break;
+								}
+								if (group[i]->get_health() <= 0)
+								{
+									dead_enemy();
+									if (group.size() == 0)
+									{
+										fighting = false;
+										return;
+									}
+								}
+								else
+									continue;
+							}
+						}
+						else
+						{
+							if (team[j]->get_power() == "Bleed" && group[i]->get_enemies() != "Mr. Fantastic")
+							{
+								std::cout << team[j]->get_attack() << " Damage!" << endl;
+								group[i]->set_health(-team[j]->get_attack());
+								std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+								team[j]->set_bleed_dmg(+team[j]->get_bleed());
+								group[i]->set_health(-team[j]->get_bleed_dmg());
+								std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
+								group[i]->set_bleeding();
+								//group[i]->set_bleed_dmg(+team[j]->get_bleed());
+								system("pause");
+								system("cls");
+								if (group[i]->get_health() <= 0)
+								{
+									dead_enemy();
+									break;
+								}
+							}
+							else
+							{
+								if (group[i]->get_reduce() > 0)
+								{
+									reduce_dmg(group[i], team[j]);
+								}
+								else
+								{
+									group[i]->set_evade();
+									if (group[i]->get_evade() == false)
+									{
+										std::cout << team[j]->get_attack() << " Damage!" << endl;
+										group[i]->set_health(-team[j]->get_attack());
+										std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
+										system("pause");
+										system("cls");
+									}
+								}
+							}
+							if (group[i]->get_health() <= 0)
+							{
+								dead_enemy();
+								break;
+							}
+						}
+
+						if (group.size() == 0)
+						{
+							fighting = false; //was fight
+							return;
+						}
+						int rand_int = rand() % 5;
+						team[j]->reset_defense();
+						team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
+						if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
+						{
+							if (team[j]->get_defense_mod() == true)
+							{
+								if (team[j]->get_is_on_fire())
+								{
+									std::cout << team[j]->get_hero() << " is still on fire!" << endl;
+									std::cout << group[i]->get_level() << " Damage!" << endl;
+									team[j]->set_health(-group[i]->get_level());
+									std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
+								}
+								if (team[j]->get_defense() > 0)
+								{
+									while (team[j]->get_defense() > 0)
+									{
+										team[j]->set_defense(-1);
+									}
+								}
+								team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
+							}
+							else
+							{
+								team[j]->reset_defense();
+								team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
+							}
+							int second_chance = rand() % 100;
+							if (second_chance > 80)
+							{
+								escape = runaway(group[index], team[j]);
+							}
+							if (escape)
+							{
+								fighting = false;
+								return;
+							}
+							else
+							{
+								if (team[j]->get_defense_mod() == true)
+								{
+									if (team[j]->get_is_on_fire())
+									{
+										std::cout << team[j]->get_hero() << " is still on fire!" << endl;
+										std::cout << group[i]->get_level() << " Damage!" << endl;
+										team[j]->set_health(-group[i]->get_level());
+										std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
+									}
+									if (team[j]->get_defense() > 0)
+									{
+										while (team[j]->get_defense() > 0)
+										{
+											team[j]->set_defense(-1);
+										}
+									}
+									team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
+								}
+								else
+								{
+									team[j]->reset_defense();
+									team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
+								}
+							}
+							if (group.size() >= 1)
+							{
+								if (group[i]->get_health() > 0)
+								{
+									group[i]->reset_defense();
+									group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_speed() + group[i]->get_level() + group[i]->get_intelligence() + rand_int);
+								}
+
+								if (group[i]->get_boss())
+								{
+									if (group[j]->get_health() < (group[j]->get_durability() * (15 + group[j]->get_level()) + 100) / 3)
+									{
+
+										int run = rand() % group[i]->get_level();
+										if (group[i]->get_defense_mod() == true)
+										{
+											if (group[i]->get_defense() > 0)
+											{
+												while (group[i]->get_defense() > 0)
+												{
+													group[i]->set_defense(-1);
+												}
+											}
+											group[i]->set_defense_mod(0);
+										}
+										else
+										{
+											group[i]->reset_defense();
+											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
+										}
+										if (run + 1 >= group[i]->get_level())
+										{
+											std::cout << group[i]->get_enemies() << " manages to escape!" << endl;
+											std::cout << team[j]->get_hero() << " gained " << group[i]->get_experience() << " exp." << endl;
+											team[j]->set_current_experience(group[i], 0);
+											std::cout << "You now have " << team[j]->get_current_experience() << " exp." << endl;
+											team[j]->set_reputation(group[i]->get_reputation());
+											std::cout << "Your Current Reputation is: " << team[j]->get_reputation() << endl;
+
+											system("pause");
+											system("cls");
+
+											if (group.size() == 0)
+											{
+
+												fighting = false; //was fight
+												return;
+											}
+										}
+									}
+									else
+									{
+										if (group[i]->get_defense_mod() == true)
+										{
+											if (group[i]->get_defense() > 0)
+											{
+												while (group[i]->get_defense() > 0)
+												{
+													group[i]->set_defense(-1);
+												}
+											}
+											group[i]->set_defense_mod(0);
+										}
+										else
+										{
+											group[i]->reset_defense();
+											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
+										}
+
+									}
+								}
+								else
+								{
+									if (group[i]->get_defense_mod() == true)
+									{
+										if (group[i]->get_defense() > 0)
+										{
+											while (group[i]->get_defense() > 0)
+											{
+												group[i]->set_defense(-1);
+											}
+										}
+
+										group[i]->set_defense_mod(0);
+									}
+									else
+									{
+										group[i]->reset_defense();
+										group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
+									}
+
+								}
+
+								for (size_t i = 0; i < group.size(); i++)
+								{
+									if (group[i]->get_bleeding() == true)
+									{
+										group[i]->set_health(-team[j]->get_bleed_dmg());
+										std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
+										system("pause");
+										system("cls");
+
+										if (group[i]->get_health() <= 0)
+											dead_enemy();
+									}
+								}
+
+								for (size_t i = 0; i < group.size(); i++)
+								{
+									if (fighting == false)
+									{
+										explosion = false;
+										while (explosion_victim.size() != 0)
+										{
+											explosion_victim.pop_back();
+										}
+										break;
+									}
+
+									if (group[i]->get_defense_mod() == true)
+									{
+										std::cout << "defense check here" << endl;
+										if (group[i]->get_defense() > 0)
+										{
+											while (group[i]->get_defense() > 0)
+											{
+												group[i]->set_defense(-1);
+											}
+										}
+										group[i]->set_defense_mod(0);
+									}
+
+									if (team[j]->get_defense_mod() == true)
+									{
+										if (team[j]->get_defense() > 0)
+										{
+											while (team[j]->get_defense() > 0)
+											{
+												team[j]->set_defense(-1);
+											}
+										}
+										team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
+									}
+
+								}
+							}
+
+							if (group.size() == 0)
+							{
+
+								fighting = false; //was fight
+								return;
+							}
+
+						}
+					}// group_hlth
+				}// to here
+				else
+					fighting = false;
+				(group.size() > 0 ? (group[0]->get_enum() == POWDERKEG ? group[0]->set_nitro(1) : 0) : 0);
+
+			}
+			if (fighting && group.size() > 0)
+			{
+				cout << "Hero: Selecting next attacker\n";
+				system("pause");
+				rand_turn = rand() % group.size();
+				group[rand_turn]->set_turn(true);
+				if (!team[j]->get_defense_mod()) player_att = true;
+				cv.notify_all();
+			}
+			else
+				fighting = false;
+		}
+	}
+	player_att = false;
+	while (group.size() > 0 && !escape)
+	{
+		group[0]->set_turn(true);
+		cv.notify_all();
+		{
+			std::unique_lock<std::mutex> lk(m);
+			cv.wait(lk, [] {return player_att; });//bool here
+		}
+		player_att = false;
+
+	}
+}
+void eneimes_fight(int index)
+{
+	int j = 0;
+	while (fighting)
+	{
+		{
+			std::unique_lock<std::mutex> lk(m);
+			cv.wait(lk, [index] {return (group[index]->check_turn()); });//
+		}
+		{
+			if (group[index]->get_health() <= 0)
+			{
+				player_att = true;
+				cv.notify_one();
+				return;
+			}
+			std::lock_guard<std::mutex> lk(m);
+			group[index]->set_turn(false);
+			player_att = false;
+			if(fighting)
+			{
+				//explosion_result();
+
+				if (team[j]->get_hero() == "Wolverine")
+				{
+					team[j]->max_hlth();
+					if (team[j]->get_health() < team[j]->get_max())
+					{
+						if (group[index]->get_power() == "Power Steal")
+						{
+							std::cout << team[j]->get_hero() << " can't regenerate health!" << endl;
+						}
+						else
+						{
+							std::cout << team[j]->get_hero() << ", Regenerates " << team[j]->get_regen() << " Health." << endl;
+							team[j]->set_health(+team[j]->get_regen());
+							std::cout << "Current Health: " << team[j]->get_health() << endl;
+
+						}
+						system("pause");
+						system("cls");
+					}
+				}
+				if (group[index]->get_regen() > 0)
+				{
+					regen_hlth(group[index]);
+				}
+
+				explosion_result();
+
+				if (team[j]->get_health() <= 0)
+					{
+						std::cout << team[j]->get_hero() << " Has been killed!" << endl;
+						std::cout << "GAME OVER!" << endl;
+						fighting = false;
+						return;
+						fighting = false;
+						return;
+					}
+
+				int evade = rand() % team[j]->get_evade();
+				if (team[j]->get_hero() == "Spiderman" || team[j]->get_hero() == "Black Widow")
+				{
+					if ((evade >= (team[j]->get_evade() * 100) && team[j]->get_defense_mod() > 0 && team[j]->get_hero() == "Spiderman") || (evade >= (team[j]->get_evade() * 0.8) && team[j]->get_defense_mod() > 0 && team[j]->get_hero() == "Black Widow"))//0.7
+						player_evades(j, index);
+				}
+				else
+				{
+					if (evade >= (team[j]->get_evade() * 0.9) && team[j]->get_defense_mod() > 0)
+					{
+						player_evades(j, index);
+					}
+				}
+
+				if (team[j]->get_health() <= 0)
+				{
+					std::cout << team[j]->get_hero() << " Has been killed!" << endl;
+					std::cout << "GAME OVER!" << endl;
+					fighting = false;
+					return;
+				}
+
+				std::cout << group[index]->get_enemies() << " Is attacking!" << endl;
+
+				int block = rand() % 10;
+				if (block >= 7)
+				{
+					explosion_result();
+					player_blocks(j, index, block);
+				}
+				else
+				{
+					explosion_result();
+					player_hit(j, index);
+				}
+				for (size_t i = 0; i < group.size(); i++)
+				{
+					if (group[index]->get_bleeding() == true)
+					{
+						group[index]->set_health(-team[j]->get_bleed_dmg());
+						std::cout << group[index]->get_enemies() << " is bleeding " << group[index]->get_health() << " Health left" << endl;
+						system("pause");
+						system("cls");
+
+						if (group[index]->get_health() <= 0)
+							dead_enemy();
+					}
+				}
+
+				int rand_int = rand() % 5;
+				team[j]->reset_defense();
+				team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
+
+				if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
+				{
+					if (team[j]->get_defense_mod() == true)
+					{
+						if (team[j]->get_is_on_fire())
+						{
+							std::cout << team[j]->get_hero() << " is still on fire!" << endl;
+							std::cout << group[index]->get_level() << " Damage!" << endl;
+							team[j]->set_health(-group[index]->get_level());
+							std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
+						}
+						if (team[j]->get_defense() > 0)
+						{
+							while (team[j]->get_defense() > 0)
+							{
+								team[j]->set_defense(-1);
+							}
+						}
+						team[j]->set_defense_mod(0, group[index]->get_power(), group[index]->get_ice());
+					}
+					else
+					{
+						team[j]->reset_defense();
+						team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
+					}
+					int second_chance = rand() % 100;
+					if (second_chance > 80)
+					{
+						escape = runaway(group[index], team[j]);
+					}
+					if (escape)
+					{
+						fighting = false;
+						return;
+					}
+				}
+				else
+				{
+					if (team[j]->get_defense_mod() == true)
+					{
+						if (team[j]->get_is_on_fire())
+						{
+							std::cout << team[j]->get_hero() << " is still on fire!" << endl;
+							std::cout << group[index]->get_level() << " Damage!" << endl;
+							team[j]->set_health(-group[index]->get_level());
+							std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
+						}
+						if (team[j]->get_defense() > 0)
+						{
+							while (team[j]->get_defense() > 0)
+							{
+								team[j]->set_defense(-1);
+							}
+						}
+						team[j]->set_defense_mod(0, group[index]->get_power(), group[index]->get_ice());
+					}
+					else
+					{
+						team[j]->reset_defense();
+						team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
+					}
+				}
+
+				group[index]->reset_defense();
+				group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_speed() + group[index]->get_level() + group[index]->get_intelligence() + rand_int);
+				if (group[index]->get_boss())
+				{
+					if (group[j]->get_health() < (group[j]->get_durability() * (15 + group[j]->get_level()) + 100) / 3)
+					{
+						int run = rand() % group[index]->get_level();
+						if (group[index]->get_defense_mod() == true)
+						{
+							if (group[index]->get_defense() > 0)
+							{
+								while (group[index]->get_defense() > 0)
+								{
+									group[index]->set_defense(-1);
+								}
+							}
+							group[index]->set_defense_mod(0);
+						}
+						else
+						{
+							group[index]->reset_defense();
+							group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_level() + group[index]->get_speed() + group[index]->get_intelligence() + rand_int + run);
+						}
+
+						if (run + 1 >= group[index]->get_level())
+						{
+							std::cout << group[index]->get_enemies() << " manages to escape!" << endl;
+							std::cout << team[j]->get_hero() << " gained " << group[index]->get_experience() << " exp." << endl;
+							team[j]->set_current_experience(group[index], 0);
+							std::cout << "You now have " << team[j]->get_current_experience() << " exp." << endl;
+							team[j]->set_reputation(group[index]->get_reputation());
+							std::cout << "Your Current Reputation is: " << team[j]->get_reputation() << endl;
+
+							system("pause");
+							system("cls");
+							fighting = false;
+							return;
+						}
+					}
+					else
+					{
+						if (group[index]->get_defense_mod() == true)
+						{
+							if (group[index]->get_defense() > 0)
+							{
+								while (group[index]->get_defense() > 0)
+								{
+									group[index]->set_defense(-1);
+								}
+							}
+							group[index]->set_defense_mod(0);
+						}
+						else
+						{
+							group[index]->reset_defense();
+							group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_level() + group[index]->get_speed() + group[index]->get_intelligence() + rand_int);
+						}
+					}
+				}
+				else
+				{
+					if (group[index]->get_defense_mod() == true)
+					{
+						if (group[index]->get_defense() > 0)
+						{
+							while (group[index]->get_defense() > 0)
+							{
+								group[index]->set_defense(-1);
+							}
+						}
+						group[index]->set_defense_mod(0);
+					}
+					else
+					{
+						group[index]->reset_defense();
+						group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_level() + group[index]->get_speed() + group[index]->get_intelligence() + rand_int);
+					}
+				}
+				system("pause");
+				system("cls");
+
+				if (team[j]->get_health() <= 0)
+				{
+					std::cout << team[j]->get_hero() << " Has been killed!" << endl;
+					std::cout << "GAME OVER!" << endl;
+					fighting = false;
+					return;
+				}
+			}
+			(group.size() > 0 ? (group[0]->get_enum() == POWDERKEG ? group[0]->set_nitro(1) : 0) : 0);
+		}//fighting loop
+
+		if (fighting && group.size() > 0)
+		{
+			cout << "Enemies: selecting next attacker\n";
+			if (!team[j]->get_defense_mod()) player_att = true;
+
+			int rand_turn;
+			if (group.size() > 1)
+			{
+				do
+				{
+					rand_turn = rand() % group.size();
+				} while (rand_turn == index);
+			}
+			else
+				rand_turn = 0;
+			group[rand_turn]->set_turn(true);
+			cv.notify_all();
+		}
+		else
+			fighting = false;
+	}
+	player_att = false;
+}
+
+thread* create_enemie_thread(enemies* e, int index)
+{
+	thread* enemy = new thread(eneimes_fight, index);
+	return enemy;
+}
 
 void fight(player* p, enemies* e)
 {
 	int j = 0;
 
-	bool escape = true;
-	bool fighting = true;
 	char input = 0;
 	if (group[0]->get_enemies().substr(0, 4) == "Civi")
 	{
@@ -1861,11 +3326,8 @@ void fight(player* p, enemies* e)
 
 	}
 
-
-
 	if (input == '1')
 	{
-
 		//{
 		for (size_t i = 0; i < group.size(); i++)
 		{
@@ -1882,16 +3344,68 @@ void fight(player* p, enemies* e)
 				std::cout<< endl;
 
 			}
-
-
 		}
-
-
-
 
 		std::cout<< "And a fight begins!" << endl;
 		system("pause");
 		system("cls");
+		fighting = true;
+		for (size_t i = 0; i < group.size(); i++)//problems here
+		{
+			enemies_thread.push_back(create_enemie_thread(group[i], i));
+			enemies_thread[i]->detach();
+		}
+		thread hero(hero_fight);
+		hero.join();
+		for (size_t i = 0; i < enemies_thread.size(); i++)
+			delete enemies_thread[i];
+		while (enemies_thread.size() > 0)
+		{
+			enemies_thread.pop_back();
+		}
+
+			if (group.size() == 0)
+			{
+				if (team[j]->get_current_experience() >= team[j]->get_experience())
+				{
+					level_up();
+
+				}
+
+				std::cout << "Would you like to rest?" << endl;
+				std::cout << "1. Yes" << endl;
+				std::cout << "2. No" << endl;
+				char a = 0;
+				a = selection(a);
+				if (a == '1')
+				{
+					std::cout << team[j]->get_hero() << " takes a short rest." << endl;
+					rest();
+					team[j]->print_stat();
+					if (group.size() == 0)
+					{
+						explosion = false;
+						while (explosion_victim.size() != 0)
+						{
+							explosion_victim.pop_back();
+						}
+					}
+
+				}
+				else if (a == '2')
+				{
+					team[j]->print_stat();
+					if (group.size() == 0)
+					{
+						explosion = false;
+						while (explosion_victim.size() != 0)
+						{
+							explosion_victim.pop_back();
+						}
+					}
+				}
+
+			}
 
 		/*if (!group[0]->get_boss())
 		{
@@ -1924,3257 +3438,7 @@ void fight(player* p, enemies* e)
 		}*/
 		
 
-		while (fighting)
-		{
-			bool player_att = true;
-			bool fight = true;
-			bool group_size = true;
-			bool group_hlth = true;
-			bool hero_hlth = true;
-
-			while (fight)
-			{
-				for (size_t i = 0; i < group.size(); i++)
-				{
-					if (group.size() == 1)
-					{
-						break;
-					}
-					if (team[j]->get_defense() > group[i]->get_defense())
-					{
-						swap(group[i], group[0]);
-						break;
-					}
-					else
-					{
-						player_att = false;
-						if (group.size() == 3)
-						{
-							if (i == 0)
-							{
-								swap(group[0], group[2]);
-							}
-							else if (i == 1)
-							{
-								swap(group[0], group[2]);
-
-							}
-							else
-							{
-								continue;
-
-							}
-						}
-						else if (group.size() == 4)
-						{
-							if (i == 0)
-							{
-								swap(group[0], group[3]);
-							}
-							else if (i == 1)
-							{
-								swap(group[0], group[2]);
-
-							}
-							else if (i == 2)
-							{
-								swap(group[0], group[3]);
-
-							}
-							else if (i == 3)
-							{
-								swap(group[2], group[3]);
-
-							}
-						}
-						else
-						{
-							continue;
-						}
-					}
-
-				}//for
-
-				explosion_result(group_size, fight);
-
-				if (player_att)
-				{
-
-					while (group_size)
-					{
-
-						std::cout<< team[j]->get_hero() << " Attacks!" << endl;
-						if (group.size() <= 0)
-						{
-							group_size = false;
-						}
-
-
-						for (size_t i = 0; i < group.size(); i++)
-						{
-							if (group_hlth == false)
-							{
-								break;
-							}
-
-							std::cout<< "Who will you attack? ";
-							std::cout<< endl;
-							for (size_t i = 0; i < group.size(); i++)
-							{
-								if (group.size() == 1)
-								{
-									break;
-								}
-								std::cout<< i << ". " << group[i]->get_enemies() << endl;
-							}
-							string a;
-
-							if (group.size() == 1)
-							{
-								a = group[i]->get_enemies();
-							}
-							else
-							{
-								bool attack = true;
-								while (attack)
-								{
-									explosion_result(group_size, fight);
-
-									char choice = 0;
-									choice = selection(choice);
-									if ((size_t)(choice - 48) >= group.size())
-									{
-										std::cout << "Please select a valid choice." << endl;
-									}
-									else
-									{
-										a = group[(choice - 48)]->get_enemies();
-										swap(group[i], group[(choice - 48)]);
-										attack = false;
-									}
-								}
-
-
-							}
-
-
-							if (a == group[i]->get_enemies())
-
-							{
-								explosion_result(group_size, fight);
-
-								std::cout<< team[j]->get_hero() << " Attacks " << group[i]->get_enemies() << "!" << endl;
-								system("pause");
-								system("cls");
-
-
-
-								while (group_hlth)
-								{
-									explosion_result(group_size, fight);
-
-									if (team[j]->get_hero() == "Wolverine")
-									{
-										team[j]->max_hlth();
-										if (team[j]->get_health() < team[j]->get_max())
-										{
-											if (group[i]->get_power() == "Power Steal")
-											{
-												std::cout << team[j]->get_hero() << " can't regenerate health!" << endl;
-											}
-											else
-											{
-												std::cout << team[j]->get_hero() << ", Regenerates " << team[j]->get_regen() << " Health." << endl;
-												team[j]->set_health(+team[j]->get_regen());
-												std::cout << "Current Health: " << team[j]->get_health() << endl;
-
-											}
-											
-											system("pause");
-											system("cls");
-										}
-									}
-									if (group.size() > 0)
-									{
-										if (group[0]->get_regen() > 0)
-										{
-											regen_hlth(group[0]);
-										}
-									}
-									
-
-									std::cout<< team[j]->get_hero() << "'s " << " Attack list." << endl;
-									if (i >= group.size())
-									{
-										i = group.size()-1;
-									}
-									team[j]->set_attack(group[i], team[j]);
-									team[j]->get_power();
-									if (team[j]->get_power() != "p" && team[j]->get_power() != "Bleed")
-									{
-										 if (team[j]->get_power() == "Elastic Crush")
-										{
-											 for (size_t i = 0; i < group.size(); i++)
-											{
-												int new_dmg = team[j]->get_attack();
-												if (group[i]->get_defense_mod() == true)
-												{
-													new_dmg = new_dmg * 2;
-													std::cout << group[i]->get_enemies() << " is stunned and cannot defend from the oncoming attack!" << endl;
-												}
-												if (group[i]->get_reduce() > 0)
-												{
-													group[i]->set_reduce();
-													if (new_dmg - group[i]->get_reduce() <= 0)
-													{
-														std::cout << "0 Damage!" << endl;
-														group[i]->set_health(-0);
-													}
-													else
-													{
-														std::cout << new_dmg - team[j]->get_reduce() << " Damage!" << endl;
-														group[i]->set_health(-new_dmg);
-														if (group[i]->get_health() > 0)
-														{
-															group[i]->set_health(+group[i]->get_reduce());
-														}
-													}
-													std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-													system("pause");
-													system("cls");
-												}
-												else
-												{
-													team[j]->set_conditon(group[i]);
-													std::cout << new_dmg << " Damage!" << endl;
-													group[i]->set_health(-new_dmg);
-													std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-													system("pause");
-													system("cls");
-												}
-											}
-										}
-										else if (team[j]->get_power() == "Elastic Smash")
-										{
-											for (size_t i = 0; i < group.size(); i++)
-											{
-												
-												int hit_speed = rand() % (team[j]->get_speed() + team[j]->get_strength());
-												int protect = rand() % group[i]->get_defense();
-												if (hit_speed >= protect)
-												{
-													group[i]->set_defense_mod(1);
-													std::cout << group[i]->get_enemies() << " is stunned from the attack!" << endl;
-												}
-												if (group[i]->get_reduce() > 0)
-												{
-													reduce_dmg(group[i], team[j]);
-												}
-												else
-												{
-													team[j]->set_conditon(group[i]);
-													group[i]->set_evade();
-													if (group[i]->get_evade() == false)
-													{
-														std::cout << team[j]->get_attack() << " Damage!" << endl;
-														group[i]->set_health(-team[j]->get_attack());
-														std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-													}
-													
-												}
-											}
-										}
-										else if (team[j]->get_power() == "Pin Ball")
-										{
-											int hit = 0;
-											for (size_t i = 0; i < group.size(); i++)
-											{
-												
-												int momentum = rand() % (team[j]->get_speed() + team[j]->get_Cskill());
-												momentum += hit;
-												int balance = rand() % (group[i]->get_Cskill() + group[i]->get_level());
-												if (momentum >= balance)
-												{
-													group[i]->set_defense_mod(1);
-													std::cout << group[i]->get_enemies() << " is knocked down from the attack!" << endl;
-													hit++;
-												}
-
-												if (group[i]->get_reduce() > 0)
-												{
-													reduce_dmg(group[i], team[j]);
-												}
-												else
-												{
-													team[j]->set_conditon(group[i]);
-													group[i]->set_evade();
-													if (group[i]->get_evade() == false)
-													{
-														std::cout << team[j]->get_attack() << " Damage!" << endl;
-														group[i]->set_health(-team[j]->get_attack());
-														std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-													system("pause");
-													system("cls");
-													}
-													
-												}
-											}
-										}
-										else if (team[j]->get_power() == "Explosive Touch")
-										{											
-											explosion_victim.push_back(group[i]->get_enemies());
-
-											std::sort(explosion_victim.begin(), explosion_victim.end());
-											explosion_victim.erase(unique(explosion_victim.begin(), explosion_victim.end()), explosion_victim.end());
-											
-											explosion = true;
-											system("pause");
-											system("cls");
-										}
-										else if (team[j]->get_power() == "Mega Blast")
-										{
-											for (size_t i = 0; i < group.size(); i++)
-											{
-												if (group[i]->get_reduce() > 0)
-												{
-													reduce_dmg(group[i], team[j]);
-												}
-												else
-												{
-													team[0]->set_conditon(group[i]);
-													group[i]->set_evade();
-													if (group[i]->get_evade() == false)
-													{
-														std::cout << team[0]->get_attack() << " Damage!" << endl;
-														group[i]->set_health(-team[0]->get_attack());
-														std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-													}
-												}
-											}
-										}
-										else if (team[j]->get_power() == "Prism")
-										{
-											
-											int split = rand() % 10;
-											int split_hit = rand() % 3;
-											split_hit++;
-											if ((size_t)split_hit > group.size())
-											{
-												split_hit = group.size() - 1;
-											}
-											if (split > 4)
-											{
-												for (int i = 0; i < split_hit; i++)
-												{
-													std::cout<< "The beam splits and hits " << group[i]->get_enemies() << "!" << endl;
-													if (group[i]->get_reduce() > 0)
-													{
-														reduce_dmg(group[i], team[j]);
-													}
-													else
-													{
-														team[j]->set_conditon(group[i]);
-														group[i]->set_evade();
-														if (group[i]->get_evade() == false)
-														{
-															std::cout << team[j]->get_attack() << " Damage!" << endl;
-															group[i]->set_health(-team[j]->get_attack());
-															std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-														}
-														
-													}
-												}
-											}
-											else
-											{
-												group[i]->set_evade();
-												if (group[i]->get_evade() == false)
-												{
-													std::cout << team[j]->get_attack() << " Damage!" << endl;
-													group[i]->set_health(-team[j]->get_attack());
-													std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-													system("pause");
-													system("cls");
-												}
-											}
-										}
-										else if (team[j]->get_power() == "Cosmic Slam")
-										{
-											for (size_t i = 0; i < group.size(); i++)
-											{
-												if (team[j]->get_speed() > group[i]->get_speed())
-												{
-													std::cout<< group[i]->get_enemies() << " is not fast enough to avoid the aftershock!" << endl;
-													std::cout<< group[i]->get_enemies() << " is knocked to the ground!" << endl;
-													group[i]->set_defense_mod(1);
-												}
-												if (group[i]->get_reduce() > 0)
-												{
-													reduce_dmg(group[i], team[j]);
-												}
-												else
-												{
-													team[j]->set_conditon(group[i]);
-													group[i]->set_evade();
-													if (group[i]->get_evade() == false)
-													{
-														std::cout << team[j]->get_attack() << " Damage!" << endl;
-														group[i]->set_health(-team[j]->get_attack());
-														std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-													}
-												}
-											}
-										}
-										
-									
-									else if (team[j]->get_power() == "Nano Assault")
-									{
-										
-										int r = rand() % 2;
-										//std::cout<< r << endl;
-										if (r == 0)
-										{
-											for (size_t i = 0; i < group.size(); i++)
-											{
-												if (group[i]->get_reduce() > 0)
-												{
-													group[i]->set_reduce();
-													group[i]->set_attack(team[j], group[i]);
-													group[i]->set_health(-group[i]->get_attack());
-													if (group[i]->get_health() > 0)
-													{
-														group[i]->set_health(+group[i]->get_reduce());
-													}
-													std::cout<< group[i]->get_attack() << " Damage!" << endl;
-													std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-													system("pause");
-													system("cls");
-
-												}
-												else
-
-												{
-													group[i]->set_attack(team[j], group[i]);
-													group[i]->set_health(-group[i]->get_attack());
-													std::cout<< group[i]->get_attack() << " Damage!" << endl;
-													std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-													system("pause");
-													system("cls");
-												}
-											}
-
-										}
-										else if (r == 1)
-										{
-											for (size_t i = 1; i <= group.size(); i++)
-											{
-												if (i >= group.size())
-												{
-													break;
-												}
-												group[i]->set_attack(team[j], group[i]);
-												group[i]->set_health(-group[i]->get_attack());
-												std::cout<< group[i]->get_attack() << " Damage!" << endl;
-												std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-												system("pause");
-												system("cls");
-											}
-
-										}
-										else if (r == 2)
-										{
-											for (size_t i = 2; i <= group.size(); i++)
-											{
-
-												if (i >= group.size())
-												{
-													break;
-												}
-												group[i]->set_attack(team[j], group[i]);
-												group[i]->set_health(-group[i]->get_attack());
-												std::cout<< group[i]->get_attack() << " Damage!" << endl;
-												std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-												system("pause");
-												system("cls");
-											}
-
-										}
-										for (size_t i = 0; i < 5; i++)
-										{
-											if (group.size() == 0)
-											{
-												group_hlth = false;
-											}
-											if (i >= group.size())
-											{
-												break;
-											}
-											if (group[i]->get_health() <= 0)
-											{
-												dead_enemy();
-												group_size = false;
-												if (group.size() <= 0)
-												{
-													fight = false;
-												}
-
-											}
-
-											else
-												continue;
-
-										}
-
-
-
-									}
-
-
-
-
-
-									else
-
-									for (size_t i = 0; i < group.size(); i++)
-									{
-										if (team[j]->get_power() == "Tear Gas")
-										{
-											group[i]->set_defense_mod(1);
-											std::cout << group[i]->get_enemies() << " is unable to see due to the tear gas!" << endl;
-										}
-										else if (team[j]->get_power() == "Widow's Bite")
-										{
-											group[i]->set_defense_mod(1);
-											std::cout << group[i]->get_enemies() << " is stunned from the electricity!" << endl;
-										}
-										if (group[i]->get_reduce() > 0)
-										{
-											reduce_dmg(group[i], team[j]);
-										}
-										else
-										{
-											team[j]->set_conditon(group[i]);
-											group[i]->set_evade();
-											if (group[i]->get_evade() == false)
-											{
-												std::cout << team[j]->get_attack() << " Damage!" << endl;
-												group[i]->set_health(-team[j]->get_attack());
-												std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-												system("pause");
-												system("cls");
-											}
-										}
-									}
-									for (size_t i = 0; i < 5; i++)
-									{
-										if (group.size() == 0)
-										{
-											group_hlth = false;
-										}
-										if (i >= group.size())
-										{
-											break;
-										}
-										if (group[i]->get_health() <= 0)
-										{
-											dead_enemy();
-											if (group.size() == 0)
-											{
-												group_hlth = false;
-											}
-
-										}
-
-										else
-											continue;
-
-									}
-
-
-
-							}
-							else
-							{
-								if (team[j]->get_power() == "Bleed" && group[i]->get_enemies() != "Mr. Fantastic")
-								{
-									std::cout<< team[j]->get_attack() << " Damage!" << endl;
-									group[i]->set_health(-team[j]->get_attack());
-									std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-									team[j]->set_bleed_dmg(+team[j]->get_bleed());
-									group[i]->set_health(-team[j]->get_bleed_dmg());
-									std::cout<< group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
-									group[i]->set_bleeding();
-									//group[i]->set_bleed_dmg(+team[j]->get_bleed());
-									system("pause");
-									system("cls");
-									if (group[i]->get_health() <= 0)
-									{
-										dead_enemy();
-										break;
-									}
-
-								}
-
-								else
-								{
-									if (group[i]->get_reduce() > 0)
-									{
-										reduce_dmg(group[i], team[j]);
-									}
-									else
-									{
-										group[i]->set_evade();
-										if (group[i]->get_evade() == false)
-										{
-											std::cout << team[j]->get_attack() << " Damage!" << endl;
-											group[i]->set_health(-team[j]->get_attack());
-											std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-											system("pause");
-											system("cls");
-										}
-									}
-								}
-								if (group[i]->get_health() <= 0)
-								{
-									dead_enemy();
-									break;
-								}
-
-							}
-
-
-							if (group_hlth == false)
-							{
-								group_size = false;
-							}
-							if (group_size == false)
-							{
-
-								fight = false;
-
-							}
-
-							
-							int rand_int = rand() % 5;
-
-							team[j]->reset_defense();
-							team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-							if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
-							{
-								if (team[j]->get_defense_mod() == true)
-								{
-									if (group[i]->get_power() == "fire")
-									{
-										std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-										std::cout << group[i]->get_level() << " Damage!" << endl;
-										team[j]->set_health(-group[i]->get_level());
-										std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-									}
-									if (team[j]->get_defense() > 0)
-									{
-										while (team[j]->get_defense() > 0)
-										{
-											team[j]->set_defense(-1);
-										}
-									}
-									team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-								}
-								else
-								{
-									team[j]->reset_defense();
-									team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
-								}
-								
-								int second_chance = rand() % 100;
-								if (second_chance > 80)
-								{
-									if (escape == false)
-									{
-										escape = true;
-									}
-								}
-								while (escape)
-								{
-									std::cout<< team[j]->get_hero() << " sees and opening to escape. will you runaway?" << endl;
-									std::cout<< "1. Yes, try to runaway" << endl;
-									std::cout<< "2. No, stay and fight" << endl;
-
-									char to_run = 0;
-									to_run = selection(to_run);
-
-									if (to_run == '1')
-									{
-										
-										int run = rand() % 500;
-										int hero = rand() % team[j]->get_level();
-										int bad = rand() % group[i]->get_level();
-										if (hero + run >= bad)
-										{
-											std::cout<< team[j]->get_hero() << " manages to runaway." << endl;
-											system("pause");
-											system("cls");
-											group.clear();
-											escape = false;
-											return;
-											system("Pause");
-											system("cls");
-
-										}
-										else
-										{
-											std::cout<< team[j]->get_hero() << " can't escape!" << endl;
-											escape = false;
-										}
-									}
-									else if (to_run == '2')
-									{
-										std::cout<< team[j]->get_hero() << " decides to stay and fight." << endl;
-										escape = false;
-									}
-									else
-									{
-										std::cout<< "Please select a correct choice." << endl;
-									}
-								}
-							}
-							else
-							{
-								if (team[j]->get_defense_mod() == true)
-								{
-									if (group[i]->get_power() == "fire")
-									{
-										std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-										std::cout << group[i]->get_level() << " Damage!" << endl;
-										team[j]->set_health(-group[i]->get_level());
-										std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-									}
-									if (team[j]->get_defense() > 0)
-									{
-										while (team[j]->get_defense() > 0)
-										{
-											team[j]->set_defense(-1);
-										}
-									}
-									team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-								}
-								else
-								{
-									team[j]->reset_defense();
-									team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-								}
-							}
-							if (group.size() >= 1)
-							{
-								if (group[i]->get_health() > 0)
-								{
-									group[i]->reset_defense();
-									group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_speed() + group[i]->get_level() + group[i]->get_intelligence() + rand_int);
-								}
-				
-								if (group[i]->get_boss())
-								{
-									if (group[j]->get_health() < (group[j]->get_durability() * (15 + group[j]->get_level()) + 100) / 3)
-									{
-										
-										int run = rand() % group[i]->get_level();
-										if (group[i]->get_defense_mod() == true)
-										{
-											if (group[i]->get_defense() > 0)
-											{
-												while (group[i]->get_defense() > 0)
-												{
-													group[i]->set_defense(-1);
-												}
-											}
-											group[i]->set_defense_mod(0);
-										}
-										else
-										{
-											group[i]->reset_defense();
-											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
-										}
-										if (run + 1 >= group[i]->get_level())
-										{
-											std::cout<< group[i]->get_enemies() << " manages to escape!" << endl;
-											std::cout<< team[j]->get_hero() << " gained " << group[i]->get_experience() << " exp." << endl;
-											team[j]->set_current_experience(group[i], 0);
-											std::cout<< "You now have " << team[j]->get_current_experience() << " exp." << endl;
-											team[j]->set_reputation(group[i]->get_reputation());
-											std::cout<< "Your Current Reputation is: " << team[j]->get_reputation() << endl;
-
-											system("pause");
-											system("cls");
-											group.clear();
-											group_hlth = false;
-											if (group_hlth == false)
-											{
-												group_size = false;
-											}
-											if (group_size == false)
-											{
-
-												fight = false;
-
-											}
-										}
-
-									}
-									else
-									{
-										if (group[i]->get_defense_mod() == true)
-										{
-											if (group[i]->get_defense() > 0)
-											{
-												while (group[i]->get_defense() > 0)
-												{
-													group[i]->set_defense(-1);
-												}
-											}
-											group[i]->set_defense_mod(0);
-										}
-										else
-										{
-											group[i]->reset_defense();
-											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-										}
-
-									}
-
-								}
-								else
-								{
-									if (group[i]->get_defense_mod() == true)
-									{
-										if (group[i]->get_defense() > 0)
-										{
-											while (group[i]->get_defense() > 0)
-											{
-												group[i]->set_defense(-1);
-											}
-										}
-
-										group[i]->set_defense_mod(0);
-									}
-									else
-									{
-										group[i]->reset_defense();
-										group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-									}
-
-								}	
-
-								for (size_t i = 0; i < group.size(); i++)
-								{
-									if (group[i]->get_bleeding() == true)
-									{
-										group[i]->set_health(-team[j]->get_bleed_dmg());
-										std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
-										system("pause");
-										system("cls");
-
-										if (group[i]->get_health() <= 0)
-										{
-											hero_hlth = false;
-											if (hero_hlth == false)
-											{
-												dead_enemy();
-												if (group.size() == 0)
-												{
-													while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-													{
-														level_up();
-
-														
-														int rand_int = rand() % 5;
-
-														if (team[j]->get_defense_mod() == true)
-														{
-															if (group[i]->get_power() == "fire")
-															{
-																std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-																std::cout << group[i]->get_level() << " Damage!" << endl;
-																team[j]->set_health(-group[i]->get_level());
-																std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-															}
-															if (team[j]->get_defense() > 0)
-															{
-																while (team[j]->get_defense() > 0)
-																{
-																	team[j]->set_defense(-1);
-																}
-															}
-															team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-														}
-														else
-														{
-															team[j]->reset_defense();
-															team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-														}
-													}
-
-													std::cout << "Would you like to rest?" << endl;
-													std::cout << "1. Yes" << endl;
-													std::cout << "2. No" << endl;
-													char a = 0;
-													a = selection(a);
-													if (a == '1')
-													{
-														std::cout << team[j]->get_hero() << " takes a short rest." << endl;
-														rest();
-
-														team[j]->print_stat();
-														if (group.size() == 0)
-														{
-															std::cout << "here1" << endl;
-															return;
-
-
-														}
-
-													}
-													else if (a == '2')
-													{
-														team[j]->print_stat();
-														if (group.size() == 0)
-														{
-															return;
-														}
-													}
-
-												}
-											}
-										}
-									}
-								}
-
-								for (size_t i = 0; i < group.size(); i++)
-								{
-									if (fight == false)
-									{
-										explosion = false;
-										while (explosion_victim.size() != 0)
-										{
-											explosion_victim.pop_back();
-										}
-										break;
-									}
-
-// Bad Guys Attack*******************************************************************************************************************************
-									if (!player_att)
-									{
-										if (group[i]->get_bleeding() == true)
-										{
-											group[i]->set_health(-team[j]->get_bleed_dmg());
-											std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
-											system("pause");
-											system("cls");
-											if (group[i]->get_health() <= 0)
-											{
-												hero_hlth = false;
-												if (hero_hlth == false)
-												{
-													dead_enemy();
-													if (group.size() == 0)
-													{
-														while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-														{
-															level_up();
-
-															
-															int rand_int = rand() % 5;
-
-															if (team[j]->get_defense_mod() == true)
-															{
-																if (group[i]->get_power() == "fire")
-																{
-																	std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-																	std::cout << group[i]->get_level() << " Damage!" << endl;
-																	team[j]->set_health(-group[i]->get_level());
-																	std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-																}
-																if (team[j]->get_defense() > 0)
-																{
-																	while (team[j]->get_defense() > 0)
-																	{
-																		team[j]->set_defense(-1);
-																	}
-																}
-																team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-															}
-															else
-															{
-																team[j]->reset_defense();
-																team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-															}
-														}
-
-														std::cout << "Would you like to rest?" << endl;
-														std::cout << "1. Yes" << endl;
-														std::cout << "2. No" << endl;
-														char a = 0;
-														a = selection(a);
-														if (a == '1')
-														{
-															std::cout << team[j]->get_hero() << " takes a short rest." << endl;
-															rest();
-
-															team[j]->print_stat();
-															if (group.size() == 0)
-															{
-																std::cout << "here1" << endl;
-																return;
-
-
-															}
-
-														}
-														else if (a == '2')
-														{
-															team[j]->print_stat();
-															if (group.size() == 0)
-															{
-																return;
-															}
-														}
-
-													}
-												}
-											}
-										}
-										
-										explosion_result(group_size, fight);
-
-										std::cout<< group[i]->get_enemies() << " Is attacking!" << endl;
-
-										
-										
-										int evade = rand() % team[j]->get_evade();
-										if (team[j]->get_hero() == "Spiderman" || team[j]->get_hero() == "Black Widow")
-										{
-											if ((evade >= (team[j]->get_evade() * 0.7) && team[j]->get_defense_mod() > 0) && team[j]->get_hero() == "Spiderman")
-											{
-												system("pause");
-												system("cls");
-												
-												std::cout<< "Spidy sense is tingling!" << endl;
-												
-												std::cout<< team[j]->get_hero() << " evades the on comming attack!" << endl;
-												system("pause");
-												system("cls");
-
-												int h_counter = rand() % team[j]->get_speed() + team[j]->get_Cskill();
-												int e_counter = rand() % group[i]->get_speed() + group[i]->get_Cskill();
-
-												if (h_counter > e_counter)
-												{
-													counter_attack(team[j], group[i], "villian", h_counter, e_counter);
-													system("pause");
-													system("cls");
-													if (team[j]->get_health() <= 0)
-													{
-														std::cout << p->get_hero() << " Has been killed!" << endl;
-														std::cout << "GAME OVER!" << endl;
-														return;
-														//exit(_getch());
-													}
-												}
-											}
-											else if ((evade >= (team[j]->get_evade()* 0.9) && team[j]->get_defense_mod() > 0) && team[j]->get_hero() == "Black Widow")
-											{
-												system("pause");
-												system("cls");
-												
-												std::cout << team[j]->get_hero() << " evades the on comming attack!" << endl;
-												system("pause");
-												system("cls");
-
-												int h_counter = rand() % team[j]->get_speed() + team[j]->get_Cskill();
-												int e_counter = rand() % group[i]->get_speed() + group[i]->get_Cskill();
-												if (h_counter > e_counter)
-												{
-													counter_attack(team[j], group[i], "villian", h_counter, e_counter);
-													system("pause");
-													system("cls");
-													if (team[j]->get_health() <= 0)
-													{
-														std::cout << p->get_hero() << " Has been killed!" << endl;
-														std::cout << "GAME OVER!" << endl;
-														return;
-														//exit(_getch());
-													}
-												}
-
-											}
-											else
-											{
-												explosion_result(group_size, fight);
-
-												
-												int block = rand() % 10;
-												group[i]->set_attack(team[j], group[i]);
-												group[i]->get_power();
-												if (group[i]->get_power() == "Multiply")
-												{
-													std::cout << group[i]->get_enemies() << " divided!" << endl;
-													group[i]->set_power("");
-													enemies *m3 = new enemies(*group[i]);
-													group.push_back(m3);
-												}
-					
-												if (group[i]->get_power() == "Explosive Touch")
-												{
-													explosion_victim.push_back(team[j]->get_hero());
-													
-													std::sort(explosion_victim.begin(), explosion_victim.end());
-													explosion_victim.erase(unique(explosion_victim.begin(), explosion_victim.end()), explosion_victim.end());
-													
-													//problem here???
-													explosion = true;
-													system("pause");
-													system("cls");
-													
-												}
-												if (group[i]->get_power() == "Nano Assault")
-												{
-													team[j]->set_attack(group[i], team[j]);
-													if (block >= 7)
-													{
-
-
-														std::cout<< team[j]->get_attack() / block << " Damage!" << endl;
-														team[j]->set_health(-team[j]->get_attack() / block);
-														std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-
-
-													}
-													else
-													{
-
-
-														std::cout<< team[j]->get_attack() << " Damage!" << endl;
-														team[j]->set_health(-team[j]->get_attack());
-														std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-
-
-													}
-
-												}
-												else
-												{
-													if (block >= 7)
-													{
-														if (team[j]->get_hero() == "Iron Man" || team[j]->get_hero() == "Mr. Fantastic")
-														{
-															team[j]->set_reduce();
-															if ((group[i]->get_attack() / block) - team[j]->get_reduce() <= 0)
-															{
-																std::cout<< "0 Damage!" << endl;
-																team[j]->set_health(-0);
-															}
-															else
-															{
-																std::cout<< (group[i]->get_attack() / block) - team[j]->get_reduce() << " Damage!" << endl;
-																team[j]->set_health(-group[i]->get_attack() / block);
-																if (team[j]->get_health() > 0)
-																{
-																	team[j]->set_health(+team[j]->get_reduce());
-																}
-
-															}
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															system("pause");
-															system("cls");
-														}
-														else if (team[j]->get_hero() == "Captain America")
-														{
-															std::cout<< group[i]->get_attack() / block << " Damage!" << endl;
-															team[j]->set_health(-group[i]->get_attack() / block);
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															group[i]->set_evade();
-															if (group[i]->get_evade() == false)
-															{
-																
-															group[i]->set_health(-(group[i]->get_attack() - (group[i]->get_attack() / block)));
-															std::cout<< team[j]->get_hero() << "'s shield reflects some of the Damage back!" << endl;
-															std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " left" << endl;
-															
-															
-															}
-															system("pause");
-															
-														}
-														else if (team[j]->get_hero() == "Black Panther")
-														{
-															std::cout<< group[i]->get_attack() / block << " Damage!" << endl;
-															team[j]->set_health(-group[i]->get_attack() / block);
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															group[i]->set_evade();
-															if (group[i]->get_evade() == false)
-															{
-
-															group[i]->set_health(-(group[i]->get_attack() - (group[i]->get_attack() / block)));
-															std::cout<< team[j]->get_hero() << "'s armor reflects some of the Damage back!" << endl;
-															std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " left" << endl;
-															
-															
-															}
-															system("pause");
-															
-														}
-														else
-														{
-															std::cout<< group[i]->get_attack() / block << " Damage!" << endl;
-															team[j]->set_health(-group[i]->get_attack() / block);
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															system("pause");
-														}
-
-													}
-													else
-													{
-														if (team[j]->get_hero() == "Iron Man" || team[j]->get_hero() == "Mr. Fantastic")
-														{
-															team[j]->set_reduce();
-															if (group[i]->get_attack() - team[j]->get_reduce() <= 0)
-															{
-																std::cout<< "0 Damage!" << endl;
-																team[j]->set_health(-0);
-															}
-															else
-															{
-																std::cout<< group[i]->get_attack() - team[j]->get_reduce() << " Damage!" << endl;
-																team[j]->set_health(-group[i]->get_attack());
-																if (team[j]->get_health() > 0)
-																{
-																	team[j]->set_health(+team[j]->get_reduce());
-																}
-
-															}
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															system("pause");
-															system("cls");
-														}
-														else
-														{
-															std::cout<< group[i]->get_attack() << " Damage!" << endl;
-															team[j]->set_health(-group[i]->get_attack());
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															system("pause");
-														}
-
-													}
-													system("cls");
-													for (size_t i = 0; i < group.size(); i++)
-													{
-														if (group[i]->get_bleeding() == true)
-														{
-															group[i]->set_health(-team[j]->get_bleed_dmg());
-															std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
-															system("pause");
-															system("cls");
-															if (group[i]->get_health() <= 0)
-															{
-																hero_hlth = false;
-																if (hero_hlth == false)
-																{
-																	dead_enemy();
-																	if (group.size() == 0)
-																	{
-																		while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-																		{
-																			level_up();
-
-																			
-																			int rand_int = rand() % 5;
-
-																			if (team[j]->get_defense_mod() == true)
-																			{
-																				if (group[i]->get_power() == "fire")
-																				{
-																					std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-																					std::cout << group[i]->get_level() << " Damage!" << endl;
-																					team[j]->set_health(-group[i]->get_level());
-																					std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-																				}
-																				if (team[j]->get_defense() > 0)
-																				{
-																					while (team[j]->get_defense() > 0)
-																					{
-																						team[j]->set_defense(-1);
-																					}
-																				}
-																				team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-																			}
-																			else
-																			{
-																				team[j]->reset_defense();
-																				team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-																			}
-																		}
-
-																		std::cout << "Would you like to rest?" << endl;
-																		std::cout << "1. Yes" << endl;
-																		std::cout << "2. No" << endl;
-																		char a = 0;
-																		a = selection(a);
-																		if (a == '1')
-																		{
-																			std::cout << team[j]->get_hero() << " takes a short rest." << endl;
-																			rest();
-
-																			team[j]->print_stat();
-																			if (group.size() == 0)
-																			{
-																				std::cout << "here1" << endl;
-																				return;
-
-
-																			}
-
-																		}
-																		else if (a == '2')
-																		{
-																			team[j]->print_stat();
-																			if (group.size() == 0)
-																			{
-																				return;
-																			}
-																		}
-
-																	}
-																}
-															}
-														}
-													}
-													if (group[i]->get_power() == "Bleed" && team[j]->get_hero() != "Mr. Fantastic")
-													{
-														std::cout<< group[i]->get_attack() << " Damage!" << endl;
-														team[j]->set_health(-group[i]->get_attack());
-														std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-														group[i]->set_bleed_dmg(+group[i]->get_bleed());
-														team[j]->set_health(-group[i]->get_bleed_dmg());
-														std::cout<< team[j]->get_hero() << " is bleeding " << team[j]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-														
-														if (group[i]->get_health() <= 0)
-														{
-															dead_enemy();
-															break;	
-															
-														}
-
-													}
-
-
-												}
-											}
-										}
-										else
-										{
-											if (evade >= (team[j]->get_evade() * 0.9) && team[j]->get_defense_mod() > 0)
-											{
-												system("pause");
-												system("cls");
-												std::cout<< team[j]->get_hero() << " evades the on comming attack!" << endl;
-												int h_counter = rand() % team[j]->get_speed() + team[j]->get_Cskill();
-												int e_counter = rand() % group[i]->get_speed() + group[i]->get_Cskill();
-												if (h_counter > e_counter)
-												{
-													counter_attack(team[j], group[i], "hero", h_counter, e_counter);
-													system("pause");
-													system("cls");
-													if (group[i]->get_health() <= 0)
-													{
-														dead_enemy();
-														break;
-													}
-												}
-												
-											}
-											else
-											{
-												explosion_result(group_size, fight);
-
-												
-												int block = rand() % 10;
-												group[i]->set_attack(team[j], group[i]);
-												group[i]->get_power();
-												if (group[i]->get_power() == "Multiply")
-												{
-													std::cout << group[i]->get_enemies() << " divided!" << endl;
-													group[i]->set_power("");
-													enemies *m0 = new enemies(*group[i]);
-													group.push_back(m0);
-												}
-												
-												if (group[i]->get_power() == "Nano Assault")
-												{
-													team[j]->set_attack(group[i], team[j]);
-													if (block >= 7)
-													{
-
-														std::cout<< team[j]->get_attack() / block << " Damage!" << endl;
-														team[j]->set_health(-team[j]->get_attack() / block);
-														std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-
-
-													}
-													else
-													{
-
-														std::cout<< team[j]->get_attack() << " Damage!" << endl;
-														team[j]->set_health(-team[j]->get_attack());
-														std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-
-
-													}
-
-
-												}
-												else
-												{
-													if (block >= 7)
-													{
-														if (team[j]->get_hero() == "Iron Man" || team[j]->get_hero() == "Mr. Fantastic")
-														{
-															team[j]->set_reduce();
-															if ((group[i]->get_attack() / block) - team[j]->get_reduce() <= 0)
-															{
-																std::cout<< "block" << endl;
-																std::cout<< group[i]->get_attack() << endl;
-																std::cout<< team[j]->get_reduce() << endl;
-
-																std::cout<< "0 Damage!" << endl;
-																team[j]->set_health(-0);
-
-															}
-															else if (team[j]->get_hero() == "Captain America")
-															{
-																std::cout<< group[i]->get_attack() / block << " Damage!" << endl;
-																team[j]->set_health(-group[i]->get_attack() / block);
-																std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-
-																group[i]->set_evade();
-																if (group[i]->get_evade() == false)
-																{
-																	
-																group[i]->set_health(-(group[i]->get_attack() - (group[i]->get_attack() / block)));
-																std::cout<< team[j]->get_hero() << "'s shield reflects some of the Damage back!" << endl;
-																std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " left" << endl;
-																
-																}
-																system("pause");
-															}
-															else if (team[j]->get_hero() == "Black Panther")
-															{
-																std::cout<< group[i]->get_attack() / block << " Damage!" << endl;
-																team[j]->set_health(-group[i]->get_attack() / block);
-																std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-
-																group[i]->set_evade();
-																if (group[i]->get_evade() == false)
-																{
-																	
-																group[i]->set_health(-(group[i]->get_attack() - (group[i]->get_attack() / block)));
-																std::cout<< team[j]->get_hero() << "'s armor reflects some of the Damage back!" << endl;
-																std::cout<< group[i]->get_enemies() << " has " << group[i]->get_health() << " left" << endl;
-																
-																
-																}
-																system("pause");
-															}
-															else
-															{
-																std::cout<< group[i]->get_attack() << endl;
-																std::cout<< team[j]->get_reduce() << endl;
-
-																std::cout<< (group[i]->get_attack() / block) - team[j]->get_reduce() << " Damage!" << endl;
-																team[j]->set_health(-group[i]->get_attack() / block);
-																if (team[j]->get_health() > 0)
-																{
-																	team[j]->set_health(+team[j]->get_reduce());
-																}
-
-															}
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															system("pause");
-															system("cls");
-														}
-														else
-														{
-															std::cout<< group[i]->get_attack() / block << " Damage!" << endl;
-															team[j]->set_health(-group[i]->get_attack() / block);
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															system("pause");
-															system("cls");
-														}
-
-													}
-													else
-													{
-														if (team[j]->get_hero() == "Iron Man" || team[j]->get_hero() == "Mr. Fantastic")
-														{
-															team[j]->set_reduce();
-															if (group[i]->get_attack() - team[j]->get_reduce() <= 0)
-															{
-																std::cout<< "0 Damage!" << endl;
-																team[j]->set_health(-0);
-															}
-															else
-															{
-																std::cout<< group[i]->get_attack() - team[j]->get_reduce() << " Damage!" << endl;
-																team[j]->set_health(-group[i]->get_attack());
-																if (team[j]->get_health() > 0)
-																{
-																	team[j]->set_health(+team[j]->get_reduce());
-																}
-
-
-															}
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															system("pause");
-															system("cls");
-														}
-														else
-														{
-															std::cout<< group[i]->get_attack() << " Damage!" << endl;
-															team[j]->set_health(-group[i]->get_attack());
-															std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-															system("pause");
-															system("cls");
-														}
-
-													}
-													for (size_t i = 0; i < group.size(); i++)
-													{
-														if (group[i]->get_bleeding() == true)
-														{
-															group[i]->set_health(-team[j]->get_bleed_dmg());
-															std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
-															system("pause");
-															system("cls");
-															if (group[i]->get_health() <= 0)
-															{
-																hero_hlth = false;
-																if (hero_hlth == false)
-																{
-																	dead_enemy();
-																	if (group.size() == 0)
-																	{
-																		while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-																		{
-																			level_up();
-
-																			
-																			int rand_int = rand() % 5;
-
-																			if (team[j]->get_defense_mod() == true)
-																			{
-																				if (group[i]->get_power() == "fire")
-																				{
-																					std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-																					std::cout << group[i]->get_level() << " Damage!" << endl;
-																					team[j]->set_health(-group[i]->get_level());
-																					std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-																				}
-																				if (team[j]->get_defense() > 0)
-																				{
-																					while (team[j]->get_defense() > 0)
-																					{
-																						team[j]->set_defense(-1);
-																					}
-																				}
-																				team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-																			}
-																			else
-																			{
-																				team[j]->reset_defense();
-																				team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-																			}
-																		}
-
-																		std::cout << "Would you like to rest?" << endl;
-																		std::cout << "1. Yes" << endl;
-																		std::cout << "2. No" << endl;
-																		char a = 0;
-																		a = selection(a);
-																		if (a == '1')
-																		{
-																			std::cout << team[j]->get_hero() << " takes a short rest." << endl;
-																			rest();
-
-																			team[j]->print_stat();
-																			if (group.size() == 0)
-																			{
-																				std::cout << "here1" << endl;
-																				return;
-
-
-																			}
-
-																		}
-																		else if (a == '2')
-																		{
-																			team[j]->print_stat();
-																			if (group.size() == 0)
-																			{
-																				return;
-																			}
-																		}
-
-																	}
-																}
-															}
-														}
-													}
-													if (group[i]->get_power() == "Bleed" && team[j]->get_hero() != "Mr. Fantastic")
-													{
-														std::cout<< group[i]->get_attack() << " Damage!" << endl;
-														team[j]->set_health(-group[i]->get_attack());
-														std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-														group[i]->set_bleed_dmg(+group[i]->get_bleed());
-														team[j]->set_health(-group[i]->get_bleed_dmg());
-														std::cout<< team[j]->get_hero() << " is bleeding " << team[j]->get_health() << " Health left" << endl;
-														system("pause");
-														system("cls");
-														if (group[i]->get_health() <= 0)
-														{
-															dead_enemy();
-															break;
-														}
-
-													}
-
-												}
-											}
-										}
-
-
-										team[j]->reset_defense();
-										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-										if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
-										{
-											if (team[j]->get_defense_mod() == true)
-											{
-												if (group[i]->get_power() == "fire")
-												{
-													std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-													std::cout << group[i]->get_level() << " Damage!" << endl;
-													team[j]->set_health(-group[i]->get_level());
-													std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-												}
-												if (team[j]->get_defense() > 0)
-												{
-													while (team[j]->get_defense() > 0)
-													{
-														team[j]->set_defense(-1);
-													}
-												}
-												team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-											}
-											else
-											{
-												team[j]->reset_defense();
-												team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
-											}
-											
-											int second_chance = rand() % 100;
-											if (second_chance > 80)
-											{
-												if (escape == false)
-												{
-													escape = true;
-												}
-											}
-											while (escape)
-											{
-												std::cout<< team[j]->get_hero() << " sees and opening to escape. will you runaway?" << endl;
-												std::cout<< "1. Yes, try to runaway" << endl;
-												std::cout<< "2. No, stay and fight" << endl;
-
-												char to_run = 0;
-												to_run = selection(to_run);
-
-												if (to_run == '1')
-												{
-													
-													int run = rand() % 5;
-													int hero = rand() % team[j]->get_level();
-													int bad = rand() % group[i]->get_level();
-													if (hero + run >= bad)
-													{
-														std::cout<< team[j]->get_hero() << " manages to runaway." << endl;
-														system("pause");
-														system("cls");
-														group.clear();
-														escape = false;
-														return;
-
-
-
-													}
-													else
-													{
-														std::cout<< team[j]->get_hero() << " can't escape!" << endl;
-														escape = false;
-													}
-												}
-												else if (to_run == '2')
-												{
-													std::cout<< team[j]->get_hero() << " decides to stay and fight." << endl;
-													escape = false;
-												}
-												else
-												{
-													std::cout<< "Please select a correct choice." << endl;
-												}
-											}
-
-
-										}
-										else
-										{
-											if (team[j]->get_defense_mod() == true)
-											{
-												if (group[i]->get_power() == "fire")
-												{
-													std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-													std::cout << group[i]->get_level() << " Damage!" << endl;
-													team[j]->set_health(-group[i]->get_level());
-													std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-												}
-												if (team[j]->get_defense() > 0)
-												{
-													while (team[j]->get_defense() > 0)
-													{
-														team[j]->set_defense(-1);
-													}
-												}
-												team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-											}
-											else
-											{
-												team[j]->reset_defense();
-												team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-											}
-										}
-										group[i]->reset_defense();
-										group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_speed() + group[i]->get_level() + group[i]->get_intelligence() + rand_int);
-										if (group[i]->get_boss())
-										{
-											if (group[j]->get_health() < (group[j]->get_durability() * (15 + group[j]->get_level()) + 100) / 3)
-											{
-												
-												int run = rand() % group[i]->get_level();
-												if (group[i]->get_defense_mod() == true)
-												{
-													if (group[i]->get_defense() > 0)
-													{
-														while (group[i]->get_defense() > 0)
-														{
-															group[i]->set_defense(-1);
-														}
-													}
-
-													group[i]->set_defense_mod(0);
-												}
-												else
-												{
-													group[i]->reset_defense();
-													group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
-												}
-												if (run + 1 >= group[i]->get_level())
-												{
-													std::cout<< group[i]->get_enemies() << " manages to escape!" << endl;
-													std::cout<< team[j]->get_hero() << " gained " << group[i]->get_experience() << " exp." << endl;
-													team[j]->set_current_experience(group[i], 0);
-													std::cout<< "You now have " << team[j]->get_current_experience() << " exp." << endl;
-													team[j]->set_reputation(group[i]->get_reputation());
-													std::cout<< "Your Current Reputation is: " << team[j]->get_reputation() << endl;
-
-													system("pause");
-													system("cls");
-													group.clear();
-													group_hlth = false;
-													if (group_hlth == false)
-													{
-														group_size = false;
-													}
-													if (group_size == false)
-													{
-
-														fight = false;
-
-													}
-												}
-											}
-											else
-											{
-												if (group[i]->get_defense_mod() == true)
-												{
-													if (group[i]->get_defense() > 0)
-													{
-														while (group[i]->get_defense() > 0)
-														{
-															group[i]->set_defense(-1);
-														}
-													}
-													group[i]->set_defense_mod(0);
-												}
-												else
-												{
-													group[i]->reset_defense();
-													group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-												}
-
-											}
-
-										}
-										else
-										{
-											if (group[i]->get_defense_mod() == true)
-											{
-												if (group[i]->get_defense() > 0)
-												{
-													while (group[i]->get_defense() > 0)
-													{
-														group[i]->set_defense(-1);
-													}
-												}
-												group[i]->set_defense_mod(0);
-											}
-											else
-											{
-												group[i]->reset_defense();
-												group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-											}
-										}
-
-										if (team[j]->get_health() <= 0)
-										{
-											std::cout<< p->get_hero() << " Has been killed!" << endl;
-											std::cout<< "GAME OVER!" << endl;
-											return;
-											//exit(_getch());
-										}
-
-
-
-
-										group_hlth = false;
-
-
-									}//if bad guy attacks
-									if (group[i]->get_defense_mod() == true)
-									{
-										std::cout << "defense check here" << endl;
-										if (group[i]->get_defense() > 0)
-										{
-											while (group[i]->get_defense() > 0)
-											{
-												group[i]->set_defense(-1);
-											}
-										}
-										group[i]->set_defense_mod(0);
-									}
-
-									if (team[j]->get_defense_mod() == true)
-									{
-										if (team[j]->get_defense() > 0)
-										{
-											while (team[j]->get_defense() > 0)
-											{
-												team[j]->set_defense(-1);
-											}
-										}
-										team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-									}
-
-								}
-							}
-
-
-
-
-							if (group_hlth == false)
-							{
-								group_size = false;
-							}
-							if (group_size == false)
-							{
-
-								fight = false;
-
-							}
-
-							}
-
-
-						}// group_hlth
-
-
-
-					}
-
-
-				}
-
-			}// group_Size
-			(group.size() > 0 ? (group[0]->get_enum() == POWDERKEG ? group[0]->set_nitro(1) : 0) : 0);
-			if (group.size() == 0)
-			{
-				while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-				{
-					level_up();
-
-					
-					int rand_int = rand() % 5;
-
-					if (team[j]->get_defense_mod() == true)
-					{
-						if (team[j]->get_defense() > 0)
-						{
-							while (team[j]->get_defense() > 0)
-							{
-								team[j]->set_defense(-1);
-							}
-						}
-						team[j]->set_defense_mod(0, "", 0);
-					}
-					else
-					{
-						team[j]->reset_defense();
-						team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-					}
-				}
-
-				std::cout << "Would you like to rest?" << endl;
-				std::cout << "1. Yes" << endl;
-				std::cout << "2. No" << endl;
-				char a = 0;
-				a = selection(a);
-				if (a == '1')
-				{
-					std::cout<< team[j]->get_hero() << " takes a short rest." << endl;
-					rest();
-					team[j]->print_stat();
-					if (group.size() == 0)
-					{
-						explosion = false;
-						while (explosion_victim.size() != 0)
-						{
-							explosion_victim.pop_back();
-						}
-						fighting = false;
-					}
-
-				}
-				else if (a == '2')
-				{
-					team[j]->print_stat();
-					if (group.size() == 0)
-					{
-						explosion = false;
-						while (explosion_victim.size() != 0)
-						{
-							explosion_victim.pop_back();
-						}
-						fighting = false;
-					}
-				}
-
-			}
-
-			//if loop
-
-
-
-			// ENEMIES ATTACK STARTS HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-			else  if (!player_att)
-			{
-
-				while (hero_hlth)
-				{
-					//explosion_result(group_size, fight);
-
-					if (team[j]->get_hero() == "Wolverine")
-					{
-						team[j]->max_hlth();
-						if (team[j]->get_health() < team[j]->get_max())
-						{
-							if (group[0]->get_power() == "Power Steal")
-							{
-								std::cout << team[j]->get_hero() << " can't regenerate health!" << endl;
-							}
-							else
-							{
-								std::cout << team[j]->get_hero() << ", Regenerates " << team[j]->get_regen() << " Health." << endl;
-								team[j]->set_health(+team[j]->get_regen());
-								std::cout << "Current Health: " << team[j]->get_health() << endl;
-
-							}
-							system("pause");
-							system("cls");
-						}
-					}
-					if (group[0]->get_regen() > 0)
-					{
-						regen_hlth(group[0]);
-					}
-
-
-					for (size_t i = 0; i < group.size(); i++)
-					{
-						explosion_result(group_size, fight);
-
-						if (hero_hlth == false)
-						{
-							break;
-
-						}
-						
-						int evade = rand() % team[j]->get_evade();
-						if (team[j]->get_hero() == "Spiderman" || team[j]->get_hero() == "Black Widow")
-						{
-
-							if ((evade >= (team[j]->get_evade() * 100) && team[j]->get_defense_mod() > 0 && team[j]->get_hero() == "Spiderman") || (evade >= (team[j]->get_evade() * 0.8) && team[j]->get_defense_mod() > 0 && team[j]->get_hero() == "Black Widow"))//0.7
-							{
-								std::cout<< group[i]->get_enemies() << " Is attacking!" << endl;
-								system("pause");
-								system("cls");
-								if (team[j]->get_hero() == "Spiderman")
-								{
-									std::cout<< "Spidy sense is tingling!" << endl;
-								}
-								std::cout<< team[j]->get_hero() << " evades the on comming attack!" << endl;
-								int h_counter = rand() % team[j]->get_speed() + team[j]->get_Cskill();
-								int e_counter = rand() % group[i]->get_speed() + group[i]->get_Cskill();
-								if (h_counter > e_counter)
-								{
-									counter_attack(team[j], group[i], "hero", h_counter, e_counter);
-								}
-								system("pause");
-								system("cls");
-								if (group[i]->get_health() <= 0)
-								{
-									hero_hlth = false;
-									if (hero_hlth == false)
-									{
-										dead_enemy();
-										if (group.size() == 0)
-										{
-											while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-											{
-												level_up();
-
-												
-												int rand_int = rand() % 5;
-
-												if (team[j]->get_defense_mod() == true)
-												{
-													if (group[i]->get_power() == "fire")
-													{
-														std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-														std::cout << group[i]->get_level() << " Damage!" << endl;
-														team[j]->set_health(-group[i]->get_level());
-														std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-													}
-													if (team[j]->get_defense() > 0)
-													{
-														while (team[j]->get_defense() > 0)
-														{
-															team[j]->set_defense(-1);
-														}
-													}
-													team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-												}
-												else
-												{
-													team[j]->reset_defense();
-													team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-												}
-											}
-
-											std::cout << "Would you like to rest?" << endl;
-											std::cout << "1. Yes" << endl;
-											std::cout << "2. No" << endl;
-											char a = 0;
-											a = selection(a);
-											if (a == '1')
-											{
-												std::cout << team[j]->get_hero() << " takes a short rest." << endl;
-												rest();
-
-												team[j]->print_stat();
-												if (group.size() == 0)
-												{
-													std::cout << "here1" << endl;
-													return;
-
-
-												}
-
-											}
-											else if (a == '2')
-											{
-												team[j]->print_stat();
-												if (group.size() == 0)
-												{
-													return;
-												}
-											}
-
-										}
-									}
-								}
-								int rand_int = rand() % 5;
-								team[j]->reset_defense();
-								team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-								
-								if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
-								{
-									if (team[j]->get_defense_mod() == true)
-									{
-										if (group[i]->get_power() == "fire")
-										{
-											std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-											std::cout << group[i]->get_level() << " Damage!" << endl;
-											team[j]->set_health(-group[i]->get_level());
-											std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-										}
-										if (team[j]->get_defense() > 0)
-										{
-											while (team[j]->get_defense() > 0)
-											{
-												team[j]->set_defense(-1);
-											}
-										}
-										team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-									}
-									else
-									{
-										team[j]->reset_defense();
-										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
-									}										
-									int second_chance = rand() % 100;
-									if (second_chance > 80)
-									{
-										if (escape == false)
-										{
-											escape = true;
-										}
-									}
-									while (escape)
-									{
-										std::cout<< team[j]->get_hero() << " sees and opening to escape. will you runaway?" << endl;
-										std::cout<< "1. Yes, try to runaway" << endl;
-										std::cout<< "2. No, stay and fight" << endl;
-
-										char to_run = 0;
-										to_run = selection(to_run);
-
-										if (to_run == '1')
-										{
-											
-											int run = rand() % 5;
-											int hero = rand() % team[j]->get_level();
-											int bad = rand() % group[i]->get_level();
-											if (hero + run >= bad)
-											{
-												std::cout<< team[j]->get_hero() << " manages to runaway." << endl;
-												system("pause");
-												system("cls");
-												group.clear();
-												escape = false;
-												return;
-
-											}
-											else
-											{
-												std::cout<< team[j]->get_hero() << " can't escape!" << endl;
-												escape = false;
-											}
-										}
-										else if (to_run == '2')
-										{
-											std::cout<< team[j]->get_hero() << " decides to stay and fight." << endl;
-											escape = false;
-										}
-										else
-										{
-											std::cout<< "Please select a correct choice." << endl;
-										}
-									}
-								}
-								else
-								{
-									if (team[j]->get_defense_mod() == true)
-									{
-										if (group[i]->get_power() == "fire")
-										{
-											std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-											std::cout << group[i]->get_level() << " Damage!" << endl;
-											team[j]->set_health(-group[i]->get_level());
-											std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-										}
-										if (team[j]->get_defense() > 0)
-										{
-											while (team[j]->get_defense() > 0)
-											{
-												team[j]->set_defense(-1);
-											}
-										}
-										team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-									}
-									else
-									{
-										team[j]->reset_defense();
-										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-									}
-								}
-								group[i]->reset_defense();
-								group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_speed() + group[i]->get_level() + group[i]->get_intelligence() + rand_int);
-								if (group[i]->get_boss())
-								{
-									if (group[j]->get_health() < (group[j]->get_durability() * (15 + group[j]->get_level()) + 100) / 3)
-									{
-										
-										int run = rand() % group[i]->get_level();
-										if (group[i]->get_defense_mod() == true)
-										{
-											if (group[i]->get_defense() > 0)
-											{
-												while (group[i]->get_defense() > 0)
-												{
-													group[i]->set_defense(-1);
-												}
-											}
-											group[i]->set_defense_mod(0);
-										}
-										else
-										{
-											group[i]->reset_defense();
-											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
-										}											if (run + 1 >= group[i]->get_level())
-										{
-											std::cout<< group[i]->get_enemies() << " manages to escape!" << endl;
-											std::cout<< team[j]->get_hero() << " gained " << group[i]->get_experience() << " exp." << endl;
-											team[j]->set_current_experience(group[i], 0);
-											std::cout<< "You now have " << team[j]->get_current_experience() << " exp." << endl;
-											team[j]->set_reputation(group[i]->get_reputation());
-											std::cout<< "Your Current Reputation is: " << team[j]->get_reputation() << endl;
-
-											system("pause");
-											system("cls");
-											group.clear();
-											hero_hlth = false;
-											if (hero_hlth == false)
-											{
-
-
-												fight = false;
-												break;
-
-											}
-										}
-									}
-									else
-									{
-										if (group[i]->get_defense_mod() == true)
-										{
-											if (group[i]->get_defense() > 0)
-											{
-												while (group[i]->get_defense() > 0)
-												{
-													group[i]->set_defense(-1);
-												}
-											}
-											group[i]->set_defense_mod(0);
-										}
-										else
-										{
-											group[i]->reset_defense();
-											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-										}
-									}
-
-								}
-								else
-								{
-									if (group[i]->get_defense_mod() == true)
-									{
-										if (group[i]->get_defense() > 0)
-										{
-											while (group[i]->get_defense() > 0)
-											{
-												group[i]->set_defense(-1);
-											}
-										}
-										group[i]->set_defense_mod(0);
-									}
-									else
-									{
-										group[i]->reset_defense();
-										group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-									}
-								}
-								//system("pause");
-								system("cls");
-								for (size_t i = 0; i < group.size(); i++)
-								{
-									if (hero_hlth == false)
-									{
-										break;
-									}
-									if (player_att)
-									{
-										hero_hlth = false;
-
-									}
-
-								}
-							}
-						}
-						else if (team[j]->get_hero() != "Spiderman" || team[j]->get_hero() != "Black Widow")
-						{
-							if (evade >= (team[j]->get_evade() * 0.9) && team[j]->get_defense_mod() > 0)
-							{
-								std::cout<< group[i]->get_enemies() << " Is attacking!" << endl;
-								system("pause");
-								system("cls");
-								std::cout<< team[j]->get_hero() << " evades the on comming attack!" << endl;
-								int h_counter = rand() % team[j]->get_speed() + team[j]->get_Cskill();
-								int e_counter = rand() % group[i]->get_speed() + group[i]->get_Cskill();
-
-								if (h_counter > e_counter)
-								{
-									counter_attack(team[j], group[i], "hero", h_counter, e_counter);
-									system("pause");
-									system("cls");
-								}
-								
-								if (group[i]->get_health() <= 0)
-								{
-									hero_hlth = false;
-									if (hero_hlth == false)
-									{
-										dead_enemy();
-
-										if (group.size() == 0)
-										{
-											while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-											{
-												level_up();
-												
-												int rand_int = rand() % 5;
-
-												if (team[j]->get_defense_mod() == true)
-												{
-													if (group[i]->get_power() == "fire")
-													{
-														std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-														std::cout << group[i]->get_level() << " Damage!" << endl;
-														team[j]->set_health(-group[i]->get_level());
-														std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-													}
-													if (team[j]->get_defense() > 0)
-													{
-														while (team[j]->get_defense() > 0)
-														{
-															team[j]->set_defense(-1);
-														}
-													}
-													team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-												}
-												else
-												{
-													team[j]->reset_defense();
-													team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-												}
-											}
-
-											std::cout << "Would you like to rest?" << endl;
-											std::cout << "1. Yes" << endl;
-											std::cout << "2. No" << endl;
-											char a = 0;
-											a = selection(a);
-											if (a == '1')
-											{
-												std::cout << team[j]->get_hero() << " takes a short rest." << endl;
-												rest();
-
-												team[j]->print_stat();
-												if (group.size() == 0)
-												{
-													std::cout << "here1" << endl;
-													return;
-
-
-												}
-
-											}
-											else if (a == '2')
-											{
-												team[j]->print_stat();
-												if (group.size() == 0)
-												{
-													return;
-												}
-											}
-
-										}
-										
-
-
-									}
-								}
-								int rand_int = rand() % 5;
-								team[j]->reset_defense();
-								team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-								
-								if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
-								{
-									if (team[j]->get_defense_mod() == true)
-									{
-										if (group[i]->get_power() == "fire")
-										{
-											std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-											std::cout << group[i]->get_level() << " Damage!" << endl;
-											team[j]->set_health(-group[i]->get_level());
-											std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-										}
-										if (team[j]->get_defense() > 0)
-										{
-											while (team[j]->get_defense() > 0)
-											{
-												team[j]->set_defense(-1);
-											}
-										}
-										team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-									}
-									else
-									{
-										team[j]->reset_defense();
-										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
-									}										
-									int second_chance = rand() % 100;
-									if (second_chance > 80)
-									{
-										if (escape == false)
-										{
-											escape = true;
-										}
-									}
-									while (escape)
-									{
-										std::cout<< team[j]->get_hero() << " sees and opening to escape. will you runaway?" << endl;
-										std::cout<< "1. Yes, try to runaway" << endl;
-										std::cout<< "2. No, stay and fight" << endl;
-
-										char to_run = 0;
-										to_run = selection(to_run);
-
-										if (to_run == '1')
-										{
-											
-											int run = rand() % 5;
-											int hero = rand() % team[j]->get_level();
-											int bad = rand() % group[i]->get_level();
-											if (hero + run >= bad)
-											{
-												std::cout<< team[j]->get_hero() << " manages to runaway." << endl;
-												system("pause");
-												system("cls");
-												group.clear();
-												escape = false;
-												return;
-
-
-											}
-											else
-											{
-												std::cout<< team[j]->get_hero() << " can't escape!" << endl;
-												escape = false;
-											}
-										}
-										else if (to_run == '2')
-										{
-											std::cout<< team[j]->get_hero() << " decides to stay and fight." << endl;
-											escape = false;
-										}
-										else
-										{
-											std::cout<< "Please select a correct choice." << endl;
-										}
-									}
-								}
-								else
-								{
-									if (team[j]->get_defense_mod() == true)
-									{
-										if (group[i]->get_power() == "fire")
-										{
-											std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-											std::cout << group[i]->get_level() << " Damage!" << endl;
-											team[j]->set_health(-group[i]->get_level());
-											std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-										}
-										if (team[j]->get_defense() > 0)
-										{
-											while (team[j]->get_defense() > 0)
-											{
-												team[j]->set_defense(-1);
-											}
-										}
-										team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-									}
-									else
-									{
-										team[j]->reset_defense();
-										team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-									}
-								}
-								if (i >= group.size())
-								{
-									i = group.size() - 1;
-								}
-								group[i]->reset_defense();
-								group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_speed() + group[i]->get_level() + group[i]->get_intelligence() + rand_int);
-								if (group[i]->get_boss())
-								{
-									if (group[j]->get_health() < (group[j]->get_durability() * (15 + group[j]->get_level()) + 100) / 3)
-									{
-										
-										int run = rand() % group[i]->get_level();
-										if (group[i]->get_defense_mod() == true)
-										{
-											if (group[i]->get_defense() > 0)
-											{
-												while (group[i]->get_defense() > 0)
-												{
-													group[i]->set_defense(-1);
-												}
-											}
-											group[i]->set_defense_mod(0);
-										}
-										else
-										{
-											group[i]->reset_defense();
-											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
-										}											if (run + 1 >= group[i]->get_level())
-										{
-											std::cout<< group[i]->get_enemies() << " manages to escape!" << endl;
-											std::cout<< team[j]->get_hero() << " gained " << group[i]->get_experience() << " exp." << endl;
-											team[j]->set_current_experience(group[i], 0);
-											std::cout<< "You now have " << team[j]->get_current_experience() << " exp." << endl;
-											team[j]->set_reputation(group[i]->get_reputation());
-											std::cout<< "Your Current Reputation is: " << team[j]->get_reputation() << endl;
-
-											system("pause");
-											system("cls");
-											group.clear();
-											hero_hlth = false;
-											if (hero_hlth == false)
-											{
-
-												fight = false;
-												break;
-
-											}
-										}
-									}
-									else
-									{
-										if (group[i]->get_defense_mod() == true)
-										{
-											if (group[i]->get_defense() > 0)
-											{
-												while (group[i]->get_defense() > 0)
-												{
-													group[i]->set_defense(-1);
-												}
-											}
-											group[i]->set_defense_mod(0);
-										}
-										else
-										{
-											group[i]->reset_defense();
-											group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-										}
-									}
-
-								}
-								else
-								{
-									if (group[i]->get_defense_mod() == true)
-									{
-										if (group[i]->get_defense() > 0)
-										{
-											while (group[i]->get_defense() > 0)
-											{
-												group[i]->set_defense(-1);
-											}
-										}
-										group[i]->set_defense_mod(0);
-									}
-									else
-									{
-										group[i]->reset_defense();
-										group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-									}
-								}
-								system("pause");
-								system("cls");
-								for (size_t i = 0; i < group.size(); i++)
-								{
-									if (hero_hlth == false)
-									{
-										break;
-									}
-									if (player_att)
-									{
-										hero_hlth = false;
-
-									}
-
-								}
-							}
-
-
-						}
-
-
-
-						if (hero_hlth == false)
-						{
-							break;
-						}
-						
-						std::cout<< group[i]->get_enemies() << " Is attacking!" << endl;
-						
-						int block = rand() % 10;
-						if (block >= 7)
-						{
-							explosion_result(group_size, fight);
-
-							std::cout<< team[j]->get_hero() << " blocks the incoming attack!" << endl;
-							group[i]->set_attack(team[j], group[i]);
-							group[i]->get_power();
-							if (group[i]->get_power() == "Multiply")
-							{
-								std::cout << group[i]->get_enemies() << " divided!" << endl;
-								group[i]->set_power("");
-								enemies *m1 = new enemies(*group[i]);
-								group.push_back(m1);
-							}
-							
-							if (group[i]->get_power() == "Nano Assault")
-							{
-
-								team[j]->set_attack(group[i], team[j]);
-								std::cout<< team[j]->get_attack() / block << " Damage!" << endl;
-								team[j]->set_health(-team[j]->get_attack() / block);
-								std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-								system("pause");
-								system("cls");
-
-
-							}
-							else
-							{
-
-
-								if (team[j]->get_hero() == "Iron Man" || team[j]->get_hero() == "Mr. Fantastic")
-								{
-									team[j]->set_reduce();
-									if ((group[i]->get_attack() / block) - team[j]->get_reduce() <= 0)
-									{
-										std::cout<< "0 Damage!" << endl;
-										team[j]->set_health(-0);
-									}
-									else
-									{
-										std::cout<< (group[i]->get_attack() / block) - team[j]->get_reduce() << " Damage!" << endl;
-										team[j]->set_health(-group[i]->get_attack() / block);
-										if (team[j]->get_health() > 0)
-										{
-											team[j]->set_health(+team[j]->get_reduce());
-										}
-
-									}
-									std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-
-								}
-								else if (team[j]->get_hero() == "Captain America")
-								{
-									std::cout<< group[i]->get_attack() / block << " Damage!" << endl;
-									team[j]->set_health(-group[i]->get_attack() / block);
-									std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-									group[i]->set_evade();
-									if (group[i]->get_evade() == false)
-									{
-										group[i]->set_health(-(group[i]->get_attack() - (group[i]->get_attack() / block)));
-										std::cout << team[j]->get_hero() << "'s shield reflects some of the Damage back!" << endl;
-										std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " left" << endl;
-									
-									}
-									system("pause");
-									
-									
-
-									if (group[i]->get_health() <= 0)
-									{
-										hero_hlth = false;
-										if (hero_hlth == false)
-										{
-											dead_enemy();
-											if (group.size() == 0)
-											{
-												while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-												{
-													level_up();
-
-													
-													int rand_int = rand() % 5;
-
-													if (team[j]->get_defense_mod() == true)
-													{
-														if (group[i]->get_power() == "fire")
-														{
-															std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-															std::cout << group[i]->get_level() << " Damage!" << endl;
-															team[j]->set_health(-group[i]->get_level());
-															std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-														}
-														if (team[j]->get_defense() > 0)
-														{
-															while (team[j]->get_defense() > 0)
-															{
-																team[j]->set_defense(-1);
-															}
-														}
-														team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-													}
-													else
-													{
-														team[j]->reset_defense();
-														team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-													}
-												}
-
-												std::cout << "Would you like to rest?" << endl;
-												std::cout << "1. Yes" << endl;
-												std::cout << "2. No" << endl;
-												char a = 0;
-												a = selection(a);
-												if (a == '1')
-												{
-													std::cout << team[j]->get_hero() << " takes a short rest." << endl;
-													rest();
-
-													team[j]->print_stat();
-													if (group.size() == 0)
-													{
-														std::cout << "here1" << endl;
-														return;
-
-
-													}
-
-												}
-												else if (a == '2')
-												{
-													team[j]->print_stat();
-													if (group.size() == 0)
-													{
-														return;
-													}
-												}
-
-											}
-
-										}
-									}
-								}
-								else
-								{
-									std::cout<< group[i]->get_attack() / block << " Damage!" << endl;
-									team[j]->set_health(-group[i]->get_attack() / block);
-									std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-								}
-
-							}
-
-						}
-						else
-						{
-							explosion_result(group_size, fight);
-
-							group[i]->set_attack(team[j], group[i]);
-							group[i]->get_power();
-							if (group[i]->get_power() == "Multiply")
-							{
-								std::cout << group[i]->get_enemies() << " divided!" << endl;
-								group[i]->set_power("");
-								enemies *m2 = new enemies(*group[i]);
-								group.push_back(m2);
-							}
-							
-							if (group[i]->get_power() == "Nano Assault")
-							{
-
-
-								team[j]->set_attack(group[i], team[j]);
-								std::cout<< team[j]->get_attack() << " Damage!" << endl;
-								team[j]->set_health(-team[j]->get_attack());
-								std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-								system("pause");
-								system("cls");
-
-
-
-							}
-							else
-							{
-								if (team[j]->get_hero() == "Iron Man" || team[j]->get_hero() == "Mr. Fantastic")
-								{
-									team[j]->set_reduce();
-									if (group[i]->get_attack() - team[j]->get_reduce() <= 0)
-									{
-										std::cout<< "0 Damage!" << endl;
-										team[j]->set_health(-0);
-
-									}
-									else
-									{
-										std::cout<< group[i]->get_attack() - team[j]->get_reduce() << " Damage!" << endl;
-
-										team[j]->set_health(-group[i]->get_attack());
-										if (team[j]->get_health() > 0)
-										{
-											team[j]->set_health(+team[j]->get_reduce());
-										}
-									}
-									std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-								}
-								else if (group[i]->get_power() == "Bleed" && team[j]->get_hero() != "Mr. Fantastic")
-								{
-									std::cout<< group[i]->get_attack() << " Damage!" << endl;
-									team[j]->set_health(-group[i]->get_attack());
-									std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-									group[i]->set_bleed_dmg(+group[i]->get_bleed());
-									team[j]->set_health(-group[i]->get_bleed_dmg());
-									std::cout<< team[j]->get_hero() << " is bleeding " << team[j]->get_health() << " Health left" << endl;
-									system("pause");
-									system("cls");
-
-								}
-								else
-								{
-									std::cout<< group[i]->get_attack() << " Damage!" << endl;
-									team[j]->set_health(-group[i]->get_attack());
-									std::cout<< team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-								}
-
-							}
-						}
-						for (size_t i = 0; i < group.size(); i++)
-						{
-							if (group[i]->get_bleeding() == true)
-							{
-								group[i]->set_health(-team[j]->get_bleed_dmg());
-								std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
-								system("pause");
-								system("cls");
-
-								if (group[i]->get_health() <= 0)
-								{
-									hero_hlth = false;
-									if (hero_hlth == false)
-									{
-										dead_enemy();
-										if (group.size() == 0)
-										{
-											while (team[j]->get_current_experience() >= team[j]->get_experience()) // if
-											{
-												level_up();
-
-												
-												int rand_int = rand() % 5;
-
-												if (team[j]->get_defense_mod() == true)
-												{
-													if (group[i]->get_power() == "fire")
-													{
-														std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-														std::cout << group[i]->get_level() << " Damage!" << endl;
-														team[j]->set_health(-group[i]->get_level());
-														std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-													}
-													if (team[j]->get_defense() > 0)
-													{
-														while (team[j]->get_defense() > 0)
-														{
-															team[j]->set_defense(-1);
-														}
-													}
-													team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-												}
-												else
-												{
-													team[j]->reset_defense();
-													team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-												}
-											}
-
-											std::cout << "Would you like to rest?" << endl;
-											std::cout << "1. Yes" << endl;
-											std::cout << "2. No" << endl;
-											char a = 0;
-											a = selection(a);
-											if (a == '1')
-											{
-												std::cout << team[j]->get_hero() << " takes a short rest." << endl;
-												rest();
-
-												team[j]->print_stat();
-												if (group.size() == 0)
-												{
-													std::cout << "here1" << endl;
-													return;
-
-
-												}
-
-											}
-											else if (a == '2')
-											{
-												team[j]->print_stat();
-												if (group.size() == 0)
-												{
-													return;
-												}
-											}
-
-										}
-									}
-								}
-							}
-						}
-						int rand_int = rand() % 5;
-						team[j]->reset_defense();
-						team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-
-						
-						if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
-						{
-							if (team[j]->get_defense_mod() == true)
-							{
-								if (group[i]->get_power() == "fire")
-								{
-									std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-									std::cout << group[i]->get_level() << " Damage!" << endl;
-									team[j]->set_health(-group[i]->get_level());
-									std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-								}
-								if (team[j]->get_defense() > 0)
-								{
-									while (team[j]->get_defense() > 0)
-									{
-										team[j]->set_defense(-1);
-									}
-								}
-								team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-							}
-							else
-							{
-								team[j]->reset_defense();
-								team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
-							}								
-							int second_chance = rand() % 100;
-							if (second_chance > 80)
-							{
-								if (escape == false)
-								{
-									escape = true;
-								}
-							}
-							while (escape)
-							{
-								std::cout<< team[j]->get_hero() << " sees and opening to escape. will you runaway?" << endl;
-								std::cout<< "1. Yes, try to runaway" << endl;
-								std::cout<< "2. No, stay and fight" << endl;
-
-								char to_run = 0;
-								to_run = selection(to_run);
-
-
-								if (to_run == '1')
-								{
-									
-									int run = rand() % 5;
-									int hero = rand() % team[j]->get_level();
-									int bad = rand() % group[i]->get_level();
-									if (hero + run >= bad)
-									{
-										std::cout<< team[j]->get_hero() << " manages to runaway." << endl;
-										system("pause");
-										system("cls");
-										group.clear();
-										escape = false;
-										return;
-
-									}
-									else
-									{
-										std::cout<< team[j]->get_hero() << " can't escape!" << endl;
-										escape = false;
-									}
-								}
-								else if (to_run == '2')
-								{
-									std::cout<< team[j]->get_hero() << " decides to stay and fight." << endl;
-									escape = false;
-								}
-								else
-								{
-									std::cout<< "Please select a correct choice." << endl;
-								}
-							}
-						}
-						else
-						{
-							if (team[j]->get_defense_mod() == true)
-							{
-								if (group[i]->get_power() == "fire")
-								{
-									std::cout << team[j]->get_hero() << " is still on fire!" << endl;
-									std::cout << group[i]->get_level() << " Damage!" << endl;
-									team[j]->set_health(-group[i]->get_level());
-									std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " health left!" << endl;
-								}
-								if (team[j]->get_defense() > 0)
-								{
-									while (team[j]->get_defense() > 0)
-									{
-										team[j]->set_defense(-1);
-									}
-								}
-								team[j]->set_defense_mod(0, group[i]->get_power(), group[i]->get_ice());
-							}
-							else
-							{
-								team[j]->reset_defense();
-								team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-							}
-						}
-						if (i >= group.size())
-						{
-							i = group.size() - 1;
-						}
-						group[i]->reset_defense();
-						group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_speed() + group[i]->get_level() + group[i]->get_intelligence() + rand_int);
-						if (group[i]->get_boss())
-						{
-							if (group[j]->get_health() < (group[j]->get_durability() * (15 + group[j]->get_level()) + 100) / 3)
-							{
-								
-								int run = rand() % group[i]->get_level();
-								if (group[i]->get_defense_mod() == true)
-								{
-									if (group[i]->get_defense() > 0)
-									{
-										while (group[i]->get_defense() > 0)
-										{
-											group[i]->set_defense(-1);
-										}
-									}
-									group[i]->set_defense_mod(0);
-								}
-								else
-								{
-									group[i]->reset_defense();
-									group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int + run);
-								}
-
-								if (run + 1 >= group[i]->get_level())
-								{
-									std::cout<< group[i]->get_enemies() << " manages to escape!" << endl;
-									std::cout<< team[j]->get_hero() << " gained " << group[i]->get_experience() << " exp." << endl;
-									team[j]->set_current_experience(group[i], 0);
-									std::cout<< "You now have " << team[j]->get_current_experience() << " exp." << endl;
-									team[j]->set_reputation(group[i]->get_reputation());
-									std::cout<< "Your Current Reputation is: " << team[j]->get_reputation() << endl;
-
-									system("pause");
-									system("cls");
-									group.clear();
-									hero_hlth = false;
-									if (hero_hlth == false)
-									{
-
-										fight = false;
-										break;
-
-									}
-								}
-							}
-							else
-							{
-								if (group[i]->get_defense_mod() == true)
-								{
-									if (group[i]->get_defense() > 0)
-									{
-										while (group[i]->get_defense() > 0)
-										{
-											group[i]->set_defense(-1);
-										}
-									}
-									group[i]->set_defense_mod(0);
-								}
-								else
-								{
-									group[i]->reset_defense();
-									group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-								}
-							}
-
-						}
-						else
-						{
-							if (group[i]->get_defense_mod() == true)
-							{
-								if (group[i]->get_defense() > 0)
-								{
-									while (group[i]->get_defense() > 0)
-									{
-										group[i]->set_defense(-1);
-									}
-								}
-								group[i]->set_defense_mod(0);
-							}
-							else
-							{
-								group[i]->reset_defense();
-								group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-							}
-						}
-						system("pause");
-						system("cls");
-					}
-					for (size_t i = 0; i < group.size(); i++)
-					{
-						if (hero_hlth == false)
-						{
-							break;
-						}
-						if (player_att)
-						{
-							hero_hlth = false;
-
-						}
-
-
-
-					}
-
-
-					if (team[j]->get_health() <= 0)
-					{
-						std::cout<< p->get_hero() << " Has been killed!" << endl;
-						std::cout<< "GAME OVER!" << endl;
-						return;
-						//exit(_getch());
-					}
-
-				}
-
-			}// hero_hlth
-			(group.size() > 0 ? (group[0]->get_enum() == POWDERKEG ? group[0]->set_nitro(1) : 0) : 0);
-
-			if (hero_hlth == false)
-			{
-
-				fight = false;
-			}
-			if (group_size == false)
-			{
-
-				fight = false;
-			}
-
-
-		}
-		if (group.size() == 0)
-		{
-			
-			int rand_int = rand() % 5;
-			team[j]->reset_defense();
-			team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-			if (team[j]->get_health() < (team[j]->get_durability() * (15 + team[j]->get_level()) + 100) / 3)
-			{
-
-				if (team[j]->get_defense_mod() == true)
-				{
-					if (team[j]->get_defense() > 0)
-					{
-						while (team[j]->get_defense() > 0)
-						{
-							team[j]->set_defense(-1);
-						}
-					}
-					team[j]->set_defense_mod(0, "", 0);
-				}
-				else
-				{
-					team[j]->reset_defense();
-					team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 20);
-				}
-			}
-			else
-			{
-				if (team[j]->get_defense_mod() == true)
-				{
-					if (team[j]->get_defense() > 0)
-					{
-						while (team[j]->get_defense() > 0)
-						{
-							team[j]->set_defense(-1);
-						}
-					}
-					team[j]->set_defense_mod(0, "", 0);
-				}
-				else
-				{
-					team[j]->reset_defense();
-					team[j]->set_defense(team[j]->get_Cskill() + team[j]->get_speed() + team[j]->get_level() + team[j]->get_intelligence() + rand_int + 10);
-				}
-			}
-			break;
-		}
 	}
-}// fight
-
-
-
 	else if (input == '2')
 	{
 		std::cout<< p->get_hero() << " ignors the sounds." << endl;
@@ -5184,11 +3448,7 @@ void fight(player* p, enemies* e)
 		}
 
 		group.clear();
-
-
 	}
-
-
 }
 void player_stats_renew(player* p)
 {

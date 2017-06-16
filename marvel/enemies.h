@@ -118,6 +118,10 @@ public:
 	void set_item(string);
 	Equipment** get_item();
 
+	//fighting turns
+	void set_turn(bool);
+	bool check_turn();
+
 
 private:
 	//Items
@@ -161,6 +165,7 @@ private:
 	bool ko;
 	bool is_boss;
 	bool is_villian;
+	bool is_turn;
 	
 	//double
 	double rep;	

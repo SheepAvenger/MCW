@@ -45,6 +45,7 @@ enemies::enemies()
 	ko = false;
 	is_boss = false;
 	is_villian = false;
+	is_turn = false;
 	bleeding = false;
 	evades = false;
 }
@@ -1759,6 +1760,15 @@ void enemies::set_level(player* h)
 int enemies::get_level()
 {
 	return e_lvl;
+}
+
+void enemies::set_turn(bool turn)
+{
+	is_turn = turn;
+}
+bool enemies::check_turn()
+{
+	return is_turn;
 }
 
 void enemies::set_item(string p_name)

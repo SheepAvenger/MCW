@@ -79,6 +79,9 @@ public:
 	int get_bleed_dmg();
 	int get_bleed();
 
+	void set_is_on_fire(bool);
+	bool get_is_on_fire();
+
 	void set_web_strength(int i);
 	int get_web_strength();
 
@@ -139,6 +142,7 @@ private:
 
 	//bool
 	bool ko;
+	bool is_on_fire;
 
 	//double
 	double rep;
