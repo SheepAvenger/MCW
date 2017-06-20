@@ -67,6 +67,10 @@
     <ClCompile Include="enemies.cpp" />
     <ClCompile Include="Equipment.cpp" />
     <ClCompile Include="Hero.cpp" />
+    <ClCompile Include="IO.cpp" />
+    <ClCompile Include="IO.h" />
+    <ClCompile Include="Map.cpp" />
+    <ClCompile Include="Mission.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -74,6 +78,8 @@
     <ClInclude Include="Enum.h" />
     <ClInclude Include="Equipment.h" />
     <ClInclude Include="Hero.h" />
+    <ClInclude Include="map.h" />
+    <ClInclude Include="Mission.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

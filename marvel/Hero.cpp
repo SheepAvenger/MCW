@@ -7,6 +7,7 @@
 #include "Hero.h"
 #include "enemies.h"
 #include "Enum.h"
+#include "Mission.h"
 using namespace std;
 bool mySort(Equipment*, Equipment*);
 
@@ -35,9 +36,11 @@ player::player()
 	web_str = 0;
 	ko = false;
 	is_on_fire = false;
+	is_turn = false;
 	reg = "";
 	hero = "";
 	power = "";
+	mission = new Mission();
 	for (int i = 0; i < Count; i++) slots[i] = NULL;
 	//bag = new multimap<string, Equipment*>();
 	//bag = new vector<Equipment*>();
@@ -584,6 +587,133 @@ int player::get_level()
 {
 	return lvl;
 }
+void player::level_up()
+{
+	int j = 0;
+	char input = 0;
+	while (Cexp >= exp) // if
+	{
+		lvl++;
+		cout << hero << " has reached level " << lvl << "!" << endl;
+		cout << "You have 4 Power Points to spend!" << endl << endl;
+
+		int pp = 4;
+		while (pp > 0)
+		{
+			cout << hero << "'s main attributes are:" << endl;
+			if (hero == "Spiderman")
+			{
+				cout << "Offensive: Speed, Strength, and Combat Skill." << endl;
+				cout << "Deffensive: Intellegence will increase your chance for evasion." << endl;
+			}
+			else if (hero == "Iron Man")
+			{
+				cout << "Offensive: Energy Projection, Combat Skill, and Strength." << endl;
+				cout << "Deffensive: Durability will increase your damage reduction." << endl;
+			}
+			else if (hero == "Ms. Marvel")
+			{
+				cout << "Offensive: Energy Projection, Combat Skill, and Strength." << endl;
+				cout << "Deffensive: Speed will increase your denfense." << endl;
+			}
+			else if (hero == "Mr. Fantastic")
+			{
+				cout << "Offensive: Strength, and Speed." << endl;
+				cout << "Deffensive: Durability will increase your damage reduction." << endl;
+			}
+			else if (hero == "Black Widow")
+			{
+				cout << "Offensive: Combat Skill, Strength, and Speed." << endl;
+				cout << "Deffensive: Intellegence will increase your defense." << endl;
+			}
+			else if (hero == "Wolverine")
+			{
+				cout << "Offensive: Strength and Durability." << endl;
+				cout << "Deffensive: Durability will increase your health regeneration." << endl;
+			}
+			else if (hero == "Black Panther")
+			{
+				cout << "Offensive: Strength, Speed, and Combat Skill." << endl;
+				cout << "Deffensive: Combat Skill will increase your defense." << endl;
+			}
+			else if (hero == "Captain America")
+			{
+				cout << "Offensive: Strength, Speed, and Combat Skill." << endl;
+				cout << "Deffensive: Combat Skill will increase your defense." << endl;
+			}
+			cout << endl << "Points remaining: " << pp << endl;
+			cout << "Please select which ability you want to increase." << endl;
+			cout << "1. Strength\n2. Speed\n3. Durability\n4. Combat Skill\n5. Energy Projection\n6. Intelligence\n";
+			input = _getch();
+			if (input == '1')
+			{
+				str++;
+				pp_strength++;
+				pp--;
+				cout << hero << "'s Strength has increased to " << str << "!" << endl;
+			}
+			else if (input == '2')
+			{
+				spd++;
+				pp_speed++;
+				pp--;
+				cout << hero << "'s Speed has increased to " << spd << "!" << endl;
+			}
+			else if (input == '3')
+			{
+				dur++;
+				pp_durability++;
+				pp--;
+				cout << hero << "'s Durability has increased to " << dur << "!" << endl;
+			}
+			else if (input == '4')
+			{
+				skill++;
+				pp_Cskill++;
+				pp--;
+				cout << hero << "'s Combat Skill has increased to " << skill << "!" << endl;
+			}
+			else if (input == '5')
+			{
+				energy++;
+				pp_energy++;
+				pp--;
+				cout << hero << "'s Energy Projection has increased to " << energy << "!" << endl;
+			}
+			else if (input == '6')
+			{
+				intell++;
+				pp_intelligence++;
+				pp--;
+				cout << hero << "'s Intelligence has increased to " << intell << "!" << endl;
+			}
+			else
+			{
+				cout << "Please select a valid choice." << endl;
+			}
+			system("pause");
+			system("cls");
+		}
+		set_experience(0);
+		set_strenght(+1);
+		set_Cskill(+1);
+		set_durability(+1);
+		set_energy(+1);
+		set_intelligence(+1);
+		set_health(-get_health());
+		set_health((get_durability() * (15 + get_level())) + 100);
+		set_speed(+1);
+		if (get_hero() == "Iron Man" || get_hero() == "Mr. Fantastic")
+		{
+			set_reduce();
+		}
+		if (get_hero() == "Wolverine")
+		{
+			set_regen();
+		}
+	}
+}
+
 
 void player::set_defense(int i)
 {
@@ -723,6 +853,54 @@ void player::print_bag()
 	{
 		cout << "Empty\n";
 	}
+}
+void player::set_pp_strength(int s)
+{
+	pp_strength = s;
+}
+int player::get_pp_strength()
+{
+	return pp_strength;
+}
+void player::set_pp_speed(int s)
+{
+	pp_speed = s;
+}
+int player::get_pp_speed()
+{
+	return pp_speed;
+}
+void player::set_pp_durability(int s)
+{
+	pp_durability = s;
+}
+int player::get_pp_durability()
+{
+	return pp_durability;
+}
+void player::set_pp_Cskill(int s)
+{
+	pp_Cskill = s;
+}
+int player::get_pp_Cskill()
+{
+	return pp_Cskill;
+}
+void player::set_pp_energy(int s)
+{
+	pp_energy = s;
+}
+int player::get_pp_energy()
+{
+	return pp_energy;
+}
+void player::set_pp_intelligence(int s)
+{
+	pp_intelligence = s;
+}
+int player::get_pp_intelligence()
+{
+	return pp_intelligence;
 }
 void player::check_item_set()
 {
@@ -3268,4 +3446,14 @@ void player::set_defense_mod(int i, string h, int ice)
 bool player::get_defense_mod()
 {
 	return ko;
+}
+
+void player::set_turn(bool turn)
+{
+	is_turn = turn;
+}
+
+bool player::check_turn()
+{
+	return is_turn;
 }

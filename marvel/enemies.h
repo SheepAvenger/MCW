@@ -2,6 +2,7 @@
 #define enemies_h
 #include <iostream>
 #include <string>
+#include <vector>
 #include "Equipment.h"
 using namespace std;
 
@@ -122,6 +123,10 @@ public:
 	void set_turn(bool);
 	bool check_turn();
 
+	//vectors
+	vector<string>die; // hold dead heros
+	vector<string>v_die; // hold dead villians
+	vector<string>mission_vill;
 
 private:
 	//Items

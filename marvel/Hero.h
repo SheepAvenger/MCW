@@ -1,6 +1,7 @@
 #ifndef Hero_h
 #define Hero_h
 #include "Equipment.h"
+#include "Mission.h"
 #include <map>
 #include <vector>
 #include <iostream>
@@ -92,6 +93,10 @@ public:
 	void set_defense_mod(int i, string h, int ice);
 	bool get_defense_mod();
 
+	//fighting turns
+	void set_turn(bool);
+	bool check_turn();
+
 	//output stats
 	void print_stat();
 
@@ -100,6 +105,24 @@ public:
 	void set_slots();
 	void print_bag();
 
+	//level up
+	void set_pp_strength(int);
+	int get_pp_strength();
+	void set_pp_speed(int);
+	int get_pp_speed();
+	void set_pp_durability(int);
+	int get_pp_durability();
+	void set_pp_Cskill(int);
+	int get_pp_Cskill();
+	void set_pp_energy(int);
+	int get_pp_energy();
+	void set_pp_intelligence(int);
+	int get_pp_intelligence();
+
+	void level_up();
+
+	//Mission
+	Mission* mission = NULL;
 
 private:
 	//enum
@@ -138,11 +161,18 @@ private:
 	int str;
 	int spd;
 	int web_str;
+	int pp_strength = 0;
+	int pp_speed = 0;
+	int pp_durability = 0;
+	int pp_Cskill = 0;
+	int pp_energy = 0;
+	int pp_intelligence = 0;
 	
 
 	//bool
 	bool ko;
 	bool is_on_fire;
+	bool is_turn;
 
 	//double
 	double rep;
