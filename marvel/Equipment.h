@@ -5,13 +5,6 @@
 #include <string>
 using namespace std;
 
-/*struct Item {
-	string name;
-	int value;
-	int stats[6];
-	int attributes[9];
-};*/
-
 class Equipment
 {
 private:

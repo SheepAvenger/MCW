@@ -1,4 +1,4 @@
-//#pragma once
+#pragma once
 #ifndef IO_h
 #define IO_h
 #include <conio.h>

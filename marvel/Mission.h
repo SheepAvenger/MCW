@@ -1,4 +1,4 @@
-//#pragma once
+#pragma once
 #ifndef Mission_h
 #define Mission_h
 #include <vector>

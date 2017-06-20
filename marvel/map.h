@@ -1,4 +1,4 @@
-//#pragma once
+#pragma once
 #ifndef Map_h
 #define Map_h
 #include <vector>

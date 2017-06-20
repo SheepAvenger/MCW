@@ -1,3 +1,4 @@
+#pragma once
 #ifndef Hero_h
 #define Hero_h
 #include "Equipment.h"
