@@ -16,7 +16,7 @@
 #include "Hero.h"
 #include "enemies.h"
 #include "Enum.h"
-#include "map.h"
+#include "Maps.h"
 #include "IO.h"
 
 using namespace std;
@@ -33,7 +33,7 @@ Mission* mission = new Mission();
 //fighting
 mutex m;
 condition_variable cv;
-bool escape = true;
+bool escape = false;
 bool fighting = true;
 
 //explosions
@@ -444,8 +444,8 @@ void counter_attack(player *p, enemies *e, string who, int h_counter, int e_coun
 			//group[i]->set_bleed_dmg(+team[j]->get_bleed());
 		}
 	}
-	system("pause");
-	system("cls");
+	//system("pause");
+	//system("cls");
 }
 
 void dead_enemy()
@@ -1065,8 +1065,8 @@ void player_hit(int j, int index)
 		std::cout << team[j]->get_attack() << " Damage!" << endl;
 		team[j]->set_health(-team[j]->get_attack());
 		std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-		system("pause");
-		system("cls");
+		//system("pause");
+		//system("cls");
 	}
 	else
 	{
@@ -1098,8 +1098,8 @@ void player_hit(int j, int index)
 			group[index]->set_bleed_dmg(+group[index]->get_bleed());
 			team[j]->set_health(-group[index]->get_bleed_dmg());
 			std::cout << team[j]->get_hero() << " is bleeding " << team[j]->get_health() << " Health left" << endl;
-			system("pause");
-			system("cls");
+			//system("pause");
+			//system("cls");
 
 		}
 		else
@@ -1135,8 +1135,8 @@ void player_blocks(int j, int index, int block)
 		std::cout << team[j]->get_attack() / block << " Damage!" << endl;
 		team[j]->set_health(-team[j]->get_attack() / block);
 		std::cout << team[j]->get_hero() << " has " << team[j]->get_health() << " Health left" << endl;
-		system("pause");
-		system("cls");
+		//system("pause");
+		//system("cls");
 	}
 	else
 	{
@@ -1174,7 +1174,7 @@ void player_blocks(int j, int index, int block)
 				std::cout << group[index]->get_enemies() << " has " << group[index]->get_health() << " left" << endl;
 
 			}
-			system("pause");
+			//system("pause");
 
 			if (group[index]->get_health() <= 0)
 				dead_enemy();
@@ -1205,8 +1205,8 @@ void player_evades(int j, int index)
 	{
 		counter_attack(team[j], group[index], "hero", h_counter, e_counter);
 	}
-	system("pause");
-	system("cls");
+	//system("pause");
+	//system("cls");
 	if (group[index]->get_health() <= 0)
 		dead_enemy();
 
@@ -1436,8 +1436,12 @@ void player_special_attack(int j, int index)
 					}
 				}
 				std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-				system("pause");
-				system("cls");
+				if (i != group.size() - 1)
+				{
+					system("pause");
+					system("cls");
+				}
+				
 			}
 			else
 			{
@@ -1445,8 +1449,11 @@ void player_special_attack(int j, int index)
 				std::cout << new_dmg << " Damage!" << endl;
 				group[i]->set_health(-new_dmg);
 				std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-				system("pause");
-				system("cls");
+				if (i != group.size() - 1)
+				{
+					system("pause");
+					system("cls");
+				}
 			}
 		}
 	}
@@ -1474,8 +1481,11 @@ void player_special_attack(int j, int index)
 					std::cout << team[j]->get_attack() << " Damage!" << endl;
 					group[i]->set_health(-team[j]->get_attack());
 					std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-					system("pause");
-					system("cls");
+					if (i != group.size() - 1)
+					{
+						system("pause");
+						system("cls");
+					}
 				}
 
 			}
@@ -1509,8 +1519,11 @@ void player_special_attack(int j, int index)
 					std::cout << team[j]->get_attack() << " Damage!" << endl;
 					group[i]->set_health(-team[j]->get_attack());
 					std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-					system("pause");
-					system("cls");
+					if (i != group.size() - 1)
+					{
+						system("pause");
+						system("cls");
+					}
 				}
 
 			}
@@ -1524,8 +1537,8 @@ void player_special_attack(int j, int index)
 		explosion_victim.erase(unique(explosion_victim.begin(), explosion_victim.end()), explosion_victim.end());
 
 		explosion = true;
-		system("pause");
-		system("cls");
+		//system("pause");
+		//system("cls");
 	}
 	else if (team[j]->get_power() == "Mega Blast")
 	{
@@ -1544,8 +1557,11 @@ void player_special_attack(int j, int index)
 					std::cout << team[0]->get_attack() << " Damage!" << endl;
 					group[i]->set_health(-team[0]->get_attack());
 					std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-					system("pause");
-					system("cls");
+					if (i != group.size() - 1)
+					{
+						system("pause");
+						system("cls");
+					}
 				}
 			}
 		}
@@ -1591,8 +1607,8 @@ void player_special_attack(int j, int index)
 				std::cout << team[j]->get_attack() << " Damage!" << endl;
 				group[index]->set_health(-team[j]->get_attack());
 				std::cout << group[index]->get_enemies() << " has " << group[index]->get_health() << " Health left" << endl;
-				system("pause");
-				system("cls");
+				//system("pause");
+				//system("cls");
 			}
 		}
 	}
@@ -1619,8 +1635,11 @@ void player_special_attack(int j, int index)
 					std::cout << team[j]->get_attack() << " Damage!" << endl;
 					group[i]->set_health(-team[j]->get_attack());
 					std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-					system("pause");
-					system("cls");
+					if (i != group.size() - 1)
+					{
+						system("pause");
+						system("cls");
+					}
 				}
 			}
 		}
@@ -1644,8 +1663,11 @@ void player_special_attack(int j, int index)
 					}
 					std::cout << group[i]->get_attack() << " Damage!" << endl;
 					std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-					system("pause");
-					system("cls");
+					if (i != group.size() - 1)
+					{
+						system("pause");
+						system("cls");
+					}
 				}
 				else
 				{
@@ -1653,8 +1675,11 @@ void player_special_attack(int j, int index)
 					group[i]->set_health(-group[i]->get_attack());
 					std::cout << group[i]->get_attack() << " Damage!" << endl;
 					std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-					system("pause");
-					system("cls");
+					if (i != group.size() - 1)
+					{
+						system("pause");
+						system("cls");
+					}
 				}
 			}
 		}
@@ -1670,8 +1695,11 @@ void player_special_attack(int j, int index)
 				group[i]->set_health(-group[i]->get_attack());
 				std::cout << group[i]->get_attack() << " Damage!" << endl;
 				std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-				system("pause");
-				system("cls");
+				if (i != group.size() - 1)
+				{
+					system("pause");
+					system("cls");
+				}
 			}
 		}
 		else if (r == 2)
@@ -1686,8 +1714,11 @@ void player_special_attack(int j, int index)
 				group[i]->set_health(-group[i]->get_attack());
 				std::cout << group[i]->get_attack() << " Damage!" << endl;
 				std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-				system("pause");
-				system("cls");
+				if (i != group.size() - 1)
+				{
+					system("pause");
+					system("cls");
+				}
 			}
 		}
 		for (size_t i = 0; i < group.size(); i++)
@@ -1732,8 +1763,11 @@ void player_special_attack(int j, int index)
 					std::cout << team[j]->get_attack() << " Damage!" << endl;
 					group[i]->set_health(-team[j]->get_attack());
 					std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-					system("pause");
-					system("cls");
+					if (i != group.size() - 1)
+					{
+						system("pause");
+						system("cls");
+					}
 				}
 			}
 		}
@@ -1767,21 +1801,18 @@ void hero_fight()
 {
 	int j = 0;
 	int rand_turn = 0;
+	bool all_stunned = false;
 
 	int index = rand() % group.size();
 	if (team[j]->get_defense() >= group[index]->get_defense())
 		team[j]->set_turn(true);
 	else
 	{
-		do
-		{
-			rand_turn = rand() % group.size();
-
-		} while (group[rand_turn]->get_defense_mod() == true);
-
-		group[rand_turn]->set_turn(true);
+		group[index]->set_turn(true);
 		cv.notify_all();
 	}
+	//system("pause");
+	//system("cls");
 	while (fighting) // clean this up
 	{
 		{
@@ -1834,6 +1865,7 @@ void hero_fight()
 						}
 						else
 						{
+							std::cout << "victim picked\n";
 							a = group[(choice - 48)]->get_enemies();
 							//swap(group[i], group[(choice - 48)]);
 							i = choice - 48;
@@ -1902,13 +1934,11 @@ void hero_fight()
 								group[i]->set_health(-team[j]->get_bleed_dmg());
 								std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
 								group[i]->set_bleeding();
-								//group[i]->set_bleed_dmg(+team[j]->get_bleed());
-								system("pause");
-								system("cls");
+
 								if (group[i]->get_health() <= 0)
 								{
 									dead_enemy();
-									break;
+									index = group.size() - 1;
 								}
 							}
 							else
@@ -1925,21 +1955,21 @@ void hero_fight()
 										std::cout << team[j]->get_attack() << " Damage!" << endl;
 										group[i]->set_health(-team[j]->get_attack());
 										std::cout << group[i]->get_enemies() << " has " << group[i]->get_health() << " Health left" << endl;
-										system("pause");
-										system("cls");
+										//system("pause");
+										//system("cls");
 									}
 								}
 							}
 							if (group[i]->get_health() <= 0)
 							{
 								dead_enemy();
-								break;
+								index = group.size() - 1;
 							}
 						}
 
 						if (group.size() == 0)
 						{
-							fighting = false; //was fight
+							fighting = false;
 							return;
 						}
 						int rand_int = rand() % 5;
@@ -1963,6 +1993,8 @@ void hero_fight()
 								{
 									if (team[j]->get_is_on_fire())
 									{
+										system("pause");
+										system("cls");
 										std::cout << team[j]->get_hero() << " is still on fire!" << endl;
 										std::cout << group[i]->get_level() << " Damage!" << endl;
 										team[j]->set_health(-group[i]->get_level());
@@ -2014,15 +2046,14 @@ void hero_fight()
 										int run = rand() % group[i]->get_level();
 										if (run + 1 >= group[i]->get_level())
 										{
+											system("pause");
+											system("cls");
 											std::cout << group[i]->get_enemies() << " manages to escape!" << endl;
 											std::cout << team[j]->get_hero() << " gained " << group[i]->get_experience() << " exp." << endl;
 											team[j]->set_current_experience(group[i], 0);
 											std::cout << "You now have " << team[j]->get_current_experience() << " exp." << endl;
 											team[j]->set_reputation(group[i]->get_reputation());
 											std::cout << "Your Current Reputation is: " << team[j]->get_reputation() << endl;
-
-											system("pause");
-											system("cls");
 
 											if (group.size() == 0)
 											{
@@ -2038,10 +2069,10 @@ void hero_fight()
 								{
 									if (group[i]->get_bleeding() == true)
 									{
-										group[i]->set_health(-team[j]->get_bleed_dmg());
-										std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
 										system("pause");
 										system("cls");
+										group[i]->set_health(-team[j]->get_bleed_dmg());
+										std::cout << group[i]->get_enemies() << " is bleeding " << group[i]->get_health() << " Health left" << endl;
 
 										if (group[i]->get_health() <= 0)
 										{
@@ -2084,21 +2115,44 @@ void hero_fight()
 			}
 			if (fighting && group.size() > 0)
 			{
-				cout << "Hero: Selecting next attacker\n";
-				system("pause");
-				do
+				//cout << "Hero: Selecting next attacker\n";
+				//system("pause");
+				for (size_t i = 0; i < group.size(); i++)
 				{
-					rand_turn = rand() % group.size();
+					if (!group[i]->get_defense_mod())
+						break;
+					if (i == group.size() - 1)
+						all_stunned = true;
+				}
+				if (!all_stunned)
+				{
+					do
+					{
+						rand_turn = rand() % group.size();
+					} while (group[rand_turn]->get_defense_mod());
 
-				} while (group[rand_turn]->get_defense_mod());
-
-				group[rand_turn]->set_turn(true);
-				if (!team[j]->get_defense_mod()) team[j]->set_turn(true);
-				cv.notify_all();
+					if (!team[j]->get_defense_mod())
+					{
+						if (group[rand_turn]->get_defense() > team[j]->get_defense())
+							group[rand_turn]->set_turn(true);
+						else
+							team[j]->set_turn(true);
+					}
+					else
+						group[rand_turn]->set_turn(true);
+				}
+				else
+					team[j]->set_turn(true);
 			}
 			else
 				fighting = false;
-		}
+			system("pause");
+			system("cls");
+		}// critical zone
+		cv.notify_all();
+		Sleep(10);
+		//system("pause");
+		//system("cls");
 	}
 	team[j]->set_turn(false);
 	while (group.size() > 0 && !escape)
@@ -2116,6 +2170,9 @@ void hero_fight()
 void eneimes_fight(int index)
 {
 	int j = 0;
+	bool has_evaded = false;
+	bool all_stunned = false;
+
 	while (fighting)
 	{
 		{
@@ -2126,7 +2183,7 @@ void eneimes_fight(int index)
 			if (group[index]->get_health() <= 0)
 			{
 				team[j]->set_turn(true);
-				cv.notify_one();
+				cv.notify_all();
 				return;
 			}
 			std::lock_guard<std::mutex> lk(m);
@@ -2168,46 +2225,57 @@ void eneimes_fight(int index)
 						std::cout << team[j]->get_hero() << " Has been killed!" << endl;
 						std::cout << "GAME OVER!" << endl;
 						fighting = false;
-						return;
-						fighting = false;
+						team[j]->set_turn(true);
 						return;
 					}
 
 				int evade = rand() % team[j]->get_evade();
 				if (team[j]->get_hero() == "Spiderman" || team[j]->get_hero() == "Black Widow")
 				{
-					if ((evade >= (team[j]->get_evade() * 100) && team[j]->get_defense_mod() > 0 && team[j]->get_hero() == "Spiderman") || (evade >= (team[j]->get_evade() * 0.8) && team[j]->get_defense_mod() > 0 && team[j]->get_hero() == "Black Widow"))//0.7
+					if ((evade >= (team[j]->get_evade() * 0.7) && team[j]->get_defense_mod() > 0 && team[j]->get_hero() == "Spiderman") || (evade >= (team[j]->get_evade() * 0.8) && team[j]->get_defense_mod() > 0 && team[j]->get_hero() == "Black Widow"))
+					{
 						player_evades(j, index);
+						has_evaded = true;
+					}
 				}
-				else
+				else if (team[j]->get_hero() != "Spiderman" && team[j]->get_hero() != "Black Widow")
 				{
 					if (evade >= (team[j]->get_evade() * 0.9) && team[j]->get_defense_mod() > 0)
 					{
 						player_evades(j, index);
+						has_evaded = true;
+
 					}
 				}
+				if (!has_evaded)
+				{
+					std::cout << group[index]->get_enemies() << " Is attacking!" << endl;
+
+					int block = rand() % 10;
+					if (block >= 7)
+					{
+						explosion_result();
+						player_blocks(j, index, block);
+					}
+					else
+					{
+						explosion_result();
+						player_hit(j, index);
+					}
+
+				}
+				else
+					has_evaded = false;
 
 				if (team[j]->get_health() <= 0)
 				{
 					std::cout << team[j]->get_hero() << " Has been killed!" << endl;
 					std::cout << "GAME OVER!" << endl;
 					fighting = false;
+					team[j]->set_turn(true);
 					return;
 				}
 
-				std::cout << group[index]->get_enemies() << " Is attacking!" << endl;
-
-				int block = rand() % 10;
-				if (block >= 7)
-				{
-					explosion_result();
-					player_blocks(j, index, block);
-				}
-				else
-				{
-					explosion_result();
-					player_hit(j, index);
-				}
 				for (size_t i = 0; i < group.size(); i++)
 				{
 					if (group[index]->get_bleeding() == true)
@@ -2232,6 +2300,8 @@ void eneimes_fight(int index)
 					{
 						if (team[j]->get_is_on_fire())
 						{
+							system("pause");
+							system("cls");
 							std::cout << team[j]->get_hero() << " is still on fire!" << endl;
 							std::cout << group[index]->get_level() << " Damage!" << endl;
 							team[j]->set_health(-group[index]->get_level());
@@ -2268,6 +2338,8 @@ void eneimes_fight(int index)
 					{
 						if (team[j]->get_is_on_fire())
 						{
+							system("pause");
+							system("cls");
 							std::cout << team[j]->get_hero() << " is still on fire!" << endl;
 							std::cout << group[index]->get_level() << " Damage!" << endl;
 							team[j]->set_health(-group[index]->get_level());
@@ -2315,6 +2387,8 @@ void eneimes_fight(int index)
 
 						if (run + 1 >= group[index]->get_level())
 						{
+							system("pause");
+							system("cls");
 							std::cout << group[index]->get_enemies() << " manages to escape!" << endl;
 							std::cout << team[j]->get_hero() << " gained " << group[index]->get_experience() << " exp." << endl;
 							team[j]->set_current_experience(group[index], 0);
@@ -2322,8 +2396,6 @@ void eneimes_fight(int index)
 							team[j]->set_reputation(group[index]->get_reputation());
 							std::cout << "Your Current Reputation is: " << team[j]->get_reputation() << endl;
 
-							system("pause");
-							system("cls");
 							fighting = false;
 							return;
 						}
@@ -2367,41 +2439,65 @@ void eneimes_fight(int index)
 						group[index]->set_defense(group[index]->get_Cskill() + group[index]->get_level() + group[index]->get_speed() + group[index]->get_intelligence() + rand_int);
 					}
 				}
-				system("pause");
-				system("cls");
+				//system("pause");
+				//system("cls");
 
 				if (team[j]->get_health() <= 0)
 				{
 					std::cout << team[j]->get_hero() << " Has been killed!" << endl;
 					std::cout << "GAME OVER!" << endl;
 					fighting = false;
+					team[j]->set_turn(true);
 					return;
 				}
 			}
 			(group.size() > 0 ? (group[0]->get_enum() == POWDERKEG ? group[0]->set_nitro(1) : 0) : 0);
-		}//fighting loop
 
-		if (fighting && group.size() > 0)
-		{
-			cout << "Enemies: selecting next attacker\n";
-			if (!team[j]->get_defense_mod()) team[j]->set_turn(true);;
-
-			int rand_turn;
-			if (group.size() > 1)
+			if (fighting && group.size() > 0)
 			{
-				do
+				//cout << "Enemies: selecting next attacker\n";
+				int rand_turn;
+				for (size_t i = 0; i < group.size(); i++)
 				{
-					rand_turn = rand() % group.size();
-				} while (rand_turn == index || group[rand_turn]->get_defense_mod() == true);
+					if (!group[i]->get_defense_mod())
+						break;
+					if (i == group.size() - 1)
+						all_stunned = true;
+				}
+
+				if (group.size() > 1 && !all_stunned)
+				{
+					do
+					{
+						rand_turn = rand() % group.size();
+					} while (rand_turn == index || group[rand_turn]->get_defense_mod() == true);
+
+				}
+				else if (!all_stunned)
+					rand_turn = 0;
+				else
+					team[j]->set_turn(true);
+				if (!team[j]->get_defense_mod())
+				{
+					if (group[rand_turn]->get_defense() > team[j]->get_defense())
+						group[rand_turn]->set_turn(true);
+					else
+						team[j]->set_turn(true);
+				}
+				else
+					group[rand_turn]->set_turn(true);
 			}
 			else
-				rand_turn = 0;
-			group[rand_turn]->set_turn(true);
-			cv.notify_all();
-		}
-		else
-			fighting = false;
-	}
+				fighting = false;
+			system("pause");
+			system("cls");
+		}// critical zone
+		cv.notify_all();
+		Sleep(10);
+		//system("pause");
+		//system("cls");
+
+	}//fighting loop
 	team[j]->set_turn(false);
 }
 
@@ -2431,7 +2527,6 @@ void fight(player* p, enemies* e)
 
 	if (input == '1')
 	{
-		//{
 		for (size_t i = 0; i < group.size(); i++)
 		{
 			if (group[i]->get_enemies().substr(0, 4) == "Civi")
@@ -2509,38 +2604,6 @@ void fight(player* p, enemies* e)
 				}
 
 			}
-
-		/*if (!group[0]->get_boss())
-		{
-			for (size_t i = 0; i < group.size(); i++)
-			{
-				/*group[i]->set_strenght(0, team[j]);
-				group[i]->set_weapon();
-				group[i]->set_Cskill(0, team[j]);
-				group[i]->set_durability(0, team[j]);
-				group[i]->set_intelligence(0, team[j]);
-				group[i]->set_energy(0, team[j]);
-				if (group[i]->get_health() <= 0)
-				{
-					group[i]->set_health(group[i]->get_durability() * 5);
-				}
-
-				//int rand_spd = rand() % (team[0]->get_speed() - team[0]->get_level());
-
-				//group[i]->set_speed(rand_spd + 3 + group[i]->get_level());
-				group[i]->reset_defense();
-				group[i]->max_health(group[i]->get_health());
-
-				int rand_int = rand() % 7;
-
-
-				group[i]->set_defense(group[i]->get_Cskill() + group[i]->get_level() + group[i]->get_speed() + group[i]->get_intelligence() + rand_int);
-				group[i]->set_experience();
-				group[i]->set_reputation();
-			}
-		}*/
-		
-
 	}
 	else if (input == '2')
 	{
@@ -2913,7 +2976,7 @@ void events1(player* p, Map* m)
 	int dead_leaders = 0;
 	int j = 0;
 	string n = "";
-	bool escape = true;
+	bool escape = false;
 	bool fighting = true;
 	switch (rand_int_event)
 	{

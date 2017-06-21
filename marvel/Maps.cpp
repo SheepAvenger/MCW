@@ -1,4 +1,4 @@
-#include "map.h"
+#include "Maps.h"
 #include "Hero.h"
 #include <conio.h>
 

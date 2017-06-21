@@ -6,7 +6,7 @@
 #include<fstream>
 #include <windows.h>
 #include "Hero.h"
-#include "map.h"
+#include "Maps.h"
 #include "Mission.h"
 #include "enemies.h"
 using namespace std;
